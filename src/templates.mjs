@@ -67,7 +67,7 @@ function towelSwatch(colour, { label = '', cls = '' } = {}) {
 function productVisual(p, { large = false } = {}) {
   const img = (p.images || [])[0];
   if (img) {
-    return `<img src="${esc(img)}" alt="${esc(p.name)}" loading="${large ? 'eager' : 'lazy'}" decoding="async" width="800" height="1000">`;
+    return `<img src="${esc(img)}" alt="${esc(p.name)}, ${esc((p.sizes || []).map((x) => sizeShort(x.size)).join(', '))} inch terry towel" loading="${large ? 'eager' : 'lazy'}" decoding="async" width="800" height="1000">`;
   }
   return towelSwatch(p.colour, { label: p.name, cls: 'terry--fill' });
 }
@@ -164,12 +164,13 @@ function timeline(ctx) {
 
 export function layout(ctx, { title, description, path, body, jsonld = [], image, active = '', noindex = false }) {
   const s = ctx.settings;
-  const fullTitle = title ? `${title} | ${s.firmName}` : `${s.firmName}${s.brandName ? ` (${s.brandName})` : ''} | ${s.tagline}`;
+  const fullTitle = title ? `${title} | ${s.firmName}` : `Terry Towel Manufacturer in ${s.city || 'India'} since ${ctx.established} | ${s.firmName}${s.brandName ? ` (${s.brandName})` : ''}`;
   const desc = description || s.seoDescription;
   const canonical = abs(ctx, path);
   const ogImage = image ? (image.startsWith('http') ? image : abs(ctx, image)) : abs(ctx, '/og-image.png');
   const nav = [
     ['towels', '/towels/', 'Towels'],
+    ['sizes', '/towel-size-guide/', 'Size guide'],
     ['about', '/about/', 'About us'],
     ['contact', '/contact/', 'Contact'],
   ];
@@ -265,6 +266,10 @@ function footer(ctx) {
       <ul>${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}</ul>
     </div>
     <div>
+      <h2 class="footer-h">Guides</h2>
+      <ul>${GUIDES.map(([p, n]) => `<li><a href="${p}">${esc(n)}</a></li>`).join('')}</ul>
+    </div>
+    <div>
       <h2 class="footer-h">Contact</h2>
       <ul>
         ${s.phone ? `<li><a href="tel:${esc(s.phone.replace(/\s+/g, ''))}">${esc(s.phone)}</a></li>` : ''}
@@ -303,7 +308,9 @@ function orgJsonLd(ctx) {
     foundingDate: String(ctx.established),
     slogan: s.tagline,
     brand: s.brandName ? { '@type': 'Brand', name: s.brandName, logo: s.brandLogo ? `${ctx.siteUrl}${s.brandLogo}` : undefined } : undefined,
-    knowsAbout: ['Terry towels', 'Bath towels', 'Hand towels', 'Face towels', 'Baby bath towels', 'Bath mats', 'Towel manufacturing'],
+    areaServed: { '@type': 'Country', name: 'India' },
+    keywords: 'Solapur towels, terry towels, towel manufacturer Solapur, bath towels, hand towels, face towels, baby bath towels, bath mats, hotel towels, wholesale towels',
+    knowsAbout: ['Solapur Terry Towel', 'Terry towels', 'Bath towels', 'Hand towels', 'Face towels', 'Baby bath towels', 'Bath mats', 'Towel manufacturing'],
   };
   if (s.phone) o.telephone = s.phone;
   if (s.email) o.email = s.email;
@@ -524,7 +531,16 @@ export function homePage(ctx) {
     mill: [heroMill, brandStrip, catTiles, featuredSection, trustSection, valuesSection],
     spa: [heroSpa, brandStrip, catRolls, featuredSection, valuesSection, storySection, trustSection],
   };
-  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + enquiryBand(ctx);
+  const guidesSection = () => `<section class="section" aria-labelledby="guides-h">
+  <div class="wrap guides-grid">
+    <div>
+      <h2 id="guides-h" class="h2">Terry towel manufacturer in ${esc(ctx.city || 'India')}</h2>
+      <p class="guides-intro">${esc(s.firmName)} makes terry towels in ${esc(ctx.city || 'India')}, the home of the GI-tagged Solapur Terry Towel. We manufacture and wholesale bath towels in standard 30 × 60 and large 36 × 72 inch sizes, baby bath towels, hand towels, face towels and bath mats under our registered brand ${esc(s.brandName ? s.brandName + '®' : s.firmName)}, for wholesalers, hotels and retailers.</p>
+    </div>
+    <ul class="cat-links">${GUIDES.map(([p, n, d]) => `<li><a href="${p}"><span>${esc(n)}</span><span class="cat-links-sizes">${esc(d)}</span></a></li>`).join('')}</ul>
+  </div>
+</section>`;
+  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + guidesSection() + '\n' + enquiryBand(ctx);
 
   return layout(ctx, {
     title: '',
@@ -532,7 +548,7 @@ export function homePage(ctx) {
     path: '/',
     image: s.heroImage ? `${s.heroImage}-1400.webp` : undefined,
     body,
-    jsonld: [orgJsonLd(ctx), { '@context': 'https://schema.org', '@type': 'WebSite', name: s.firmName, url: `${ctx.siteUrl}/` }],
+    jsonld: [orgJsonLd(ctx), { '@context': 'https://schema.org', '@type': 'WebSite', name: s.firmName, alternateName: [s.brandName, s.alternateName].filter(Boolean), url: `${ctx.siteUrl}/` }],
   });
 }
 
@@ -613,10 +629,11 @@ export function categoryPage(ctx, cat) {
     : `<p class="empty">We are adding ${esc(cat.name.toLowerCase())} to the site. <a href="/contact/">Contact us</a> for the current range.</p>`}
   </div>
 </section>
+${catAbout(ctx, cat)}
 ${otherCats(ctx, cat)}
 ${enquiryBand(ctx)}`;
   return layout(ctx, {
-    title: `${cat.name} manufacturer${ctx.city ? ` in ${ctx.city}` : ''}`,
+    title: `${cat.name} Manufacturer in ${ctx.city || 'India'}, Wholesale ${(cat.sizes || []).map(sizeShort).join(', ')}`,
     description: `${cat.description || cat.name} Made by ${ctx.settings.firmName}, terry towel manufacturer since ${ctx.established}.`,
     path,
     active: 'towels',
@@ -631,6 +648,19 @@ ${enquiryBand(ctx)}`;
       },
     ],
   });
+}
+
+function catAbout(ctx, cat) {
+  const s = ctx.settings;
+  const sizes = (cat.sizes || []).map((sz) => `${sizeLabel(sz)}${sizeName(sz) ? ` (${sizeName(sz).toLowerCase()})` : ''}`).join(' and ');
+  const lower = cat.name.toLowerCase();
+  return `<section class="section section--tight">
+  <div class="wrap narrow prose prose--guide">
+    <h2>${esc(cat.name)} from ${esc(ctx.city || 'our factory')}</h2>
+    <p>${esc(s.firmName)} manufactures terry ${esc(lower)} in ${esc(ctx.city || 'India')} in ${esc(sizes)} sizes, under our registered brand ${esc(s.brandName ? s.brandName + '®' : s.firmName)}. We supply ${esc(lower)} in bulk to ${esc(s.buyers || 'wholesalers, hotels and retailers')}, in ${esc((s.materials || []).slice(0, 4).join(', ').toLowerCase() || 'cotton')} and more.</p>
+    <p>Each product page lists the weight for every size. For the full chart in inches and centimetres, see the <a href="/towel-size-guide/">towel size guide</a>. To understand weight, GSM and materials, read our <a href="/terry-towels/">terry towel guide</a>.</p>
+  </div>
+</section>`;
 }
 
 function otherCats(ctx, current) {
@@ -664,7 +694,7 @@ export function productPage(ctx, p) {
 
   const gallery = imgs.length
     ? `<div class="gallery" data-gallery>
-        <div class="gallery-main"><img src="${esc(imgs[0])}" alt="${esc(p.name)}" width="1000" height="1250" data-gallery-main></div>
+        <div class="gallery-main"><img src="${esc(imgs[0])}" alt="${esc(p.name)} by ${esc(s.brandName || s.firmName)}, ${esc(sizeList)} inches" width="1000" height="1250" data-gallery-main></div>
         ${imgs.length > 1 ? `<ul class="gallery-thumbs">${imgs.map((src, i) => `<li><button type="button" data-gallery-thumb="${esc(src)}" aria-label="Show photo ${i + 1}"${i === 0 ? ' aria-current="true"' : ''}><img src="${esc(src)}" alt="" loading="lazy" width="120" height="150"></button></li>`).join('')}</ul>` : ''}
       </div>`
     : `<div class="gallery"><div class="gallery-main gallery-main--swatch">${towelSwatch(p.colour, { label: p.name, cls: 'terry--fill' })}<p class="gallery-note">Photos coming soon</p></div></div>`;
@@ -853,4 +883,281 @@ export function notFoundPage(ctx) {
     <div class="btn-row"><a class="btn btn--primary" href="/towels/">See all towels</a><a class="btn btn--ghost" href="/">Go to the home page</a></div>
   </div></section>`;
   return layout(ctx, { title: 'Page not found', path: '/404', body, noindex: true });
+}
+
+// =====================================================================
+// Guide pages for search: Solapur towels, terry towel guide, size guide, hotel towels
+// =====================================================================
+
+const strip = (html) => String(html).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+export const GUIDES = [
+  ['/solapur-towels/', 'Solapur towels', 'Terry towels made in Solapur, Maharashtra, home of the GI-tagged Solapur Terry Towel.'],
+  ['/terry-towels/', 'Terry towel guide', 'Weight, GSM, materials and patterns explained.'],
+  ['/towel-size-guide/', 'Towel size guide', 'Every towel size in inches and centimetres.'],
+  ['/hotel-towels/', 'Hotel towels', 'Room sets of bath, hand and face towels and bath mats in bulk.'],
+];
+
+function faqBlock(faq) {
+  if (!faq?.length) return '';
+  return `<section class="section section--tight" aria-labelledby="faq-h">
+  <div class="wrap narrow">
+    <h2 id="faq-h" class="h2">Questions buyers ask</h2>
+    <div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div class="faq-a">${a}</div></details>`).join('')}</div>
+  </div>
+</section>`;
+}
+
+function faqLd(faq) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: strip(a) } })),
+  };
+}
+
+function guideLinks(ctx, currentPath) {
+  const items = GUIDES.filter(([p]) => p !== currentPath);
+  return `<section class="section section--tight">
+  <div class="wrap">
+    <h2 class="h3">More buying guides</h2>
+    <ul class="cat-links">${items.map(([p, name, d]) => `<li><a href="${p}"><span>${esc(name)}</span><span class="cat-links-sizes">${esc(d)}</span></a></li>`).join('')}</ul>
+  </div>
+</section>`;
+}
+
+function guidePage(ctx, { path, crumb, title, description, h1, lede, body, faq = [], extraLd = [] }) {
+  const crumbs = [['Home', '/'], [crumb, path]];
+  const html = `
+<section class="page-head">
+  <div class="wrap">
+    ${crumbNav(crumbs)}
+    <h1 class="display display--page">${esc(h1)}</h1>
+    <p class="lede">${lede}</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="wrap narrow prose prose--guide">${body}</div>
+</section>
+${faqBlock(faq)}
+${guideLinks(ctx, path)}
+${enquiryBand(ctx)}`;
+  const ld = [breadcrumbs(ctx, crumbs), ...extraLd];
+  if (faq.length) ld.push(faqLd(faq));
+  return layout(ctx, { title, description, path, body: html, jsonld: ld, active: path === '/towel-size-guide/' ? 'sizes' : '' });
+}
+
+function sizeTable(ctx) {
+  return `<div class="table-wrap"><table class="size-table">
+    <thead><tr><th scope="col">Towel</th><th scope="col">Size (inches)</th><th scope="col">Size (cm)</th></tr></thead>
+    <tbody>${ctx.categories.map((c) => (c.sizes || []).map((sz, i) => `<tr>
+      ${i === 0 ? `<th scope="rowgroup" rowspan="${c.sizes.length}"><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></th>` : ''}
+      <td>${esc(sizeLabel(sz))}${nameTag(sz)}</td><td>${esc(sizeCm(sz))}</td>
+    </tr>`).join('')).join('')}</tbody>
+  </table></div>`;
+}
+
+function catList(ctx) {
+  return `<ul class="tick-list">${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a>: ${(c.sizes || []).map((sz) => esc(sizeLabel(sz) + nameParen(sz))).join(', ')}</li>`).join('')}</ul>`;
+}
+
+function waText(ctx, text) {
+  const wa = waLink(ctx.settings, text);
+  return wa ? `<a href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : '<a href="/contact/">WhatsApp</a>';
+}
+
+export function solapurPage(ctx) {
+  const s = ctx.settings;
+  const brand = s.brandName ? `${s.brandName}®` : s.firmName;
+  const im = s.indiamartUrl ? `<a href="${esc(s.indiamartUrl)}" target="_blank" rel="noopener">IndiaMART</a>` : 'IndiaMART';
+  const body = `
+<h2>Why Solapur is known for towels</h2>
+<p>Solapur in Maharashtra is one of India's best-known centres for terry towels and chaddars. Its towel-making heritage is protected by law: <strong>Solapur Terry Towel</strong> is a registered Geographical Indication (GI) of India, registered in 2005, alongside Solapuri Chaddar.</p>
+<p>Generations of Solapur weavers, dyers and finishers have built skills in terry weaving, so buyers across India look to Solapur for towels with good absorbency, strong borders and dependable quality.</p>
+
+<h2>A Solapur towel manufacturer since ${ctx.established}</h2>
+<p>${esc(s.firmName)} started in Solapur in ${ctx.established} with a grey cotton fabric plant, grew into chaddars and then terry towels, and today is a manufacturer and wholesaler of towels. We sell under our registered brand ${esc(brand)}.</p>
+<p>You will find us ${s.addressLine ? `at ${esc(s.addressLine)}, ` : 'in '}${esc(s.city || 'Solapur')}. Buyers on IndiaMART rate us 5.0 out of 5, with more than 150 trusted customers.</p>
+
+<h2>Solapur towels we make</h2>
+${catList(ctx)}
+<p>See the <a href="/towels/">full towel range</a>, or check every size in our <a href="/towel-size-guide/">towel size guide</a>.</p>
+
+<h2>Why buy direct from a Solapur manufacturer</h2>
+<ul class="tick-list">
+  <li><strong>Factory prices.</strong> Our buying power and tight control of overheads keep our rates competitive.</li>
+  <li><strong>Uniform quality.</strong> Our experienced team checks each stage, so every batch matches the last.</li>
+  <li><strong>Choice.</strong> Standard and large bath towels, baby, hand and face towels and bath mats, in cotton and blended yarns, plain, dobby border, jacquard, striped and more.</li>
+  <li><strong>Quick quotations.</strong> We reply on WhatsApp in ${esc(s.languages || 'English, Marathi, Hindi and Telugu')}.</li>
+</ul>
+
+<h2>How to order Solapur towels from us</h2>
+<ol class="steps">
+  <li>Choose the towel type and size from <a href="/towels/">our towels</a>.</li>
+  <li>Send the towel, size, quantity and delivery city on ${waText(ctx, `Hello ${s.firmName}, I want to buy Solapur towels.`)} or ${im}.</li>
+  <li>We reply quickly with our best quotation.</li>
+</ol>
+
+<div class="lang-block">
+  <p lang="mr"><strong>सोलापूरमधील टॉवेल उत्पादक.</strong> विजयलक्ष्मी टेक्सटाईल्स (शेगुर्स), १९८२ पासून. घाऊक टेरी टॉवेलसाठी आम्हाला WhatsApp करा.</p>
+  <p lang="hi"><strong>सोलापुर के टॉवेल निर्माता.</strong> विजयलक्ष्मी टेक्सटाइल्स (शेगुर्स), 1982 से. थोक में टेरी टॉवेल के लिए हमें WhatsApp करें।</p>
+</div>`;
+
+  const faq = [
+    ['Are you a manufacturer or a trader?', `<p>We are a manufacturer and wholesaler of terry towels in Solapur, established in ${ctx.established}. We also supply selected microfiber towels.</p>`],
+    ['Who do you supply?', `<p>Wholesalers, hotels and retailers. Tell us your quantity and we will quote.</p>`],
+    ['What is the standard bath towel size?', `<p>30 × 60 inches (76 × 152 cm) is the standard bath towel size. 36 × 72 inches (91 × 183 cm) is the large size. See the <a href="/towel-size-guide/">size guide</a>.</p>`],
+    ['What is the minimum order quantity?', `<p>It depends on the towel and size. Send your requirement on ${waText(ctx, `Hello ${s.firmName}, what is your minimum order quantity?`)} and we will confirm.</p>`],
+    ['How do I get your price list?', `<p>Prices depend on size, weight and quantity. Message us on ${waText(ctx, `Hello ${s.firmName}, please share your towel price list.`)} or ${im} with your requirement.</p>`],
+    ['What is your brand name?', `<p>${esc(brand)} is the registered brand of ${esc(s.firmName)}.</p>`],
+  ];
+
+  return guidePage(ctx, {
+    path: '/solapur-towels/',
+    crumb: 'Solapur towels',
+    title: 'Solapur Towels: Terry Towel Manufacturer in Solapur since ' + ctx.established,
+    description: `Buy Solapur terry towels direct from ${s.firmName} (${s.brandName || ''}), a towel manufacturer and wholesaler in Solapur since ${ctx.established}. Bath, hand, face, baby towels and bath mats.`,
+    h1: 'Solapur towels, direct from a Solapur manufacturer',
+    lede: `${esc(s.firmName)} has made cotton textiles in Solapur since ${ctx.established}. Buy terry towels direct from the maker, under our registered brand ${esc(brand)}.`,
+    body,
+    faq,
+  });
+}
+
+export function terryGuidePage(ctx) {
+  const s = ctx.settings;
+  const body = `
+<h2>What is a terry towel?</h2>
+<p>Terry is a fabric woven with uncut loops of yarn standing up from the surface, usually on both sides. Those loops add surface area, so a terry towel soaks up water far better than flat-woven cloth. Nearly all bath, hand and face towels are terry.</p>
+
+<h2>Towel weight and GSM</h2>
+<p>GSM means grams per square metre. It tells you how dense the towel is, regardless of its size. As a general guide:</p>
+<ul class="tick-list">
+  <li><strong>Light, about 300–400 GSM:</strong> thin, dries fast, lowest cost. Good for gyms, salons, promotions and hot weather.</li>
+  <li><strong>Medium, about 400–600 GSM:</strong> the everyday choice for homes and most hotels.</li>
+  <li><strong>Heavy, 600 GSM and above:</strong> thick and plush, slower to dry, a premium feel.</li>
+</ul>
+<p>Many buyers in India order by <strong>weight per piece</strong> instead, for example a 30 × 60 bath towel of a certain number of grams. We list the weight for each size on our product pages, and can quote by GSM or by weight per piece.</p>
+
+<h2>Materials</h2>
+<p>We work with ${esc((s.materials || []).join(', ') || '100% cotton and blended yarns')}. Pure cotton is the most absorbent and the softest against skin. Blended and filament yarns can lower the price and add strength and sheen. Microfiber towels are very light and dry quickly.</p>
+
+<h2>Patterns and borders</h2>
+<ul class="tick-list">
+  <li><strong>Plain:</strong> one colour, simple and easy to match.</li>
+  <li><strong>Dobby border:</strong> a woven band near each end. A classic for hotels and homes.</li>
+  <li><strong>Jacquard:</strong> designs woven into the towel itself, so they never wash out.</li>
+  <li><strong>Striped and checks:</strong> yarn-dyed patterns that stay bright.</li>
+  <li><strong>Printed:</strong> designs printed on the surface, good for bright colours and character designs.</li>
+</ul>
+
+<h2>Choosing the right size</h2>
+<p>30 × 60 inches is the standard bath towel and 36 × 72 inches is the large size. Hand towels are usually 16 × 24 or 14 × 21 inches, and face towels 12 × 18 or 12 × 12 inches. See every size in centimetres in the <a href="/towel-size-guide/">towel size guide</a>.</p>
+
+<h2>Caring for terry towels</h2>
+<ul class="tick-list">
+  <li>Wash new towels before first use to remove finishing agents and improve absorbency.</li>
+  <li>Wash dark colours separately for the first few washes.</li>
+  <li>Use fabric softener sparingly. It coats the loops and reduces absorbency.</li>
+  <li>Dry fully before folding to keep towels fresh.</li>
+</ul>`;
+  const faq = [
+    ['Which is better, a heavier or a lighter towel?', '<p>Neither is better for everyone. Heavier towels feel plush and absorb more, while lighter towels dry faster and cost less. Choose by use: everyday home and hotel use suits medium weights.</p>'],
+    ['Do terry towels shrink?', '<p>Cotton terry can shrink slightly in the first washes, especially in hot water or a hot dryer. Washing in warm water and avoiding very high dryer heat helps.</p>'],
+    ['Why does a new towel not absorb well?', '<p>New towels carry finishing agents from manufacturing. One or two washes remove them and the towel absorbs much better.</p>'],
+    ['Can you make towels in a specific weight or colour?', `<p>Tell us the size, weight, colour and quantity on ${waText(ctx, `Hello ${s.firmName}, I need towels in a specific weight and colour.`)} and we will tell you what we can make.</p>`],
+  ];
+  return guidePage(ctx, {
+    path: '/terry-towels/',
+    crumb: 'Terry towel guide',
+    title: "Terry Towels: Buyer's Guide to Weight, GSM, Material and Size",
+    description: 'What terry towels are, how GSM and weight work, which materials and patterns to choose, standard sizes and care tips. From a Solapur terry towel manufacturer.',
+    h1: "Terry towels: a buyer's guide",
+    lede: `How to choose terry towels by weight, material, pattern and size, from a Solapur manufacturer making towels since ${ctx.established}.`,
+    body,
+    faq,
+  });
+}
+
+export function sizeGuidePage(ctx) {
+  const s = ctx.settings;
+  const body = `
+<h2>Towel sizes at a glance</h2>
+<p>All our sizes are in inches. Centimetres are rounded to the nearest whole number.</p>
+${sizeTable(ctx)}
+
+<h2>Standard bath towel size</h2>
+<p><strong>30 × 60 inches (76 × 152 cm)</strong> is the standard bath towel size in India and the most popular size with homes, hotels and retailers. It wraps comfortably around most adults.</p>
+<p><strong>36 × 72 inches (91 × 183 cm)</strong> is the large bath towel, sometimes called a bath sheet. It suits taller people, premium hotel rooms and anyone who wants full coverage.</p>
+
+<h2>Baby bath towel sizes</h2>
+<p>24 × 48 and 20 × 40 inches are sized for babies and young children. They are easier to handle than full-size towels and dry quickly.</p>
+
+<h2>Hand and face towel sizes</h2>
+<p>Hand towels of 16 × 24 or 14 × 21 inches are used in washrooms, kitchens, salons and offices. Face towels of 12 × 18 or 12 × 12 inches work as face cloths, napkins and wash cloths.</p>
+
+<h2>Bath mat size</h2>
+<p>20 × 30 inches is the standard terry bath mat, made dense and heavy to stay in place on the floor.</p>
+
+<h2>Need another size?</h2>
+<p>Send the size and quantity you need on ${waText(ctx, `Hello ${s.firmName}, I need towels in a custom size.`)} and we will tell you what we can make.</p>`;
+  const faq = [
+    ['What is the standard size of a bath towel?', '<p>30 × 60 inches (76 × 152 cm).</p>'],
+    ['What size is a large bath towel?', '<p>36 × 72 inches (91 × 183 cm), also called a bath sheet.</p>'],
+    ['What is the size of a hand towel?', '<p>16 × 24 inches (41 × 61 cm) or 14 × 21 inches (36 × 53 cm).</p>'],
+    ['What is the size of a face towel?', '<p>12 × 18 inches (30 × 46 cm) or 12 × 12 inches (30 × 30 cm).</p>'],
+    ['What size is a baby bath towel?', '<p>24 × 48 inches (61 × 122 cm) or 20 × 40 inches (51 × 102 cm).</p>'],
+  ];
+  return guidePage(ctx, {
+    path: '/towel-size-guide/',
+    crumb: 'Towel size guide',
+    title: 'Towel Size Guide: Standard Bath, Hand, Face Towel Sizes in Inches and cm',
+    description: 'Standard bath towel size is 30 × 60 inches. Full chart of bath, large bath, baby, hand and face towel and bath mat sizes in inches and centimetres.',
+    h1: 'Towel size guide',
+    lede: 'Every towel size we make, in inches and centimetres, with what each size is used for.',
+    body,
+    faq,
+  });
+}
+
+export function hotelPage(ctx) {
+  const s = ctx.settings;
+  const body = `
+<h2>A standard hotel room set</h2>
+<p>Most hotels stock each room with a set like this. We make every piece in Solapur, so you can order the full set from one supplier.</p>
+<div class="table-wrap"><table class="size-table">
+  <thead><tr><th scope="col">Item</th><th scope="col">Size (inches)</th><th scope="col">Typical use</th></tr></thead>
+  <tbody>
+    <tr><th scope="row"><a href="/towels/bath-towels/">Bath towel</a></th><td>30 × 60 <span class="size-name">Standard</span> or 36 × 72 <span class="size-name">Large</span></td><td>One or two per guest</td></tr>
+    <tr><th scope="row"><a href="/towels/hand-towels/">Hand towel</a></th><td>16 × 24</td><td>One per guest</td></tr>
+    <tr><th scope="row"><a href="/towels/face-towels/">Face towel</a></th><td>12 × 12</td><td>One per guest</td></tr>
+    <tr><th scope="row"><a href="/towels/bath-mats/">Bath mat</a></th><td>20 × 30</td><td>One per bathroom</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Choosing hotel towels</h2>
+<ul class="tick-list">
+  <li><strong>Design:</strong> plain and dobby-border towels in white or light colours are the hotel favourite. They look clean and are easy to match across rooms.</li>
+  <li><strong>Weight:</strong> medium weights suit most hotels and wash well. Heavier towels give premium rooms a plush feel. See our <a href="/terry-towels/">terry towel guide</a>.</li>
+  <li><strong>Material:</strong> cotton absorbs best. Blends can lower the price per piece.</li>
+  <li><strong>Stock:</strong> many hotels keep three sets per room: one in use, one in the laundry and one in store.</li>
+</ul>
+
+<h2>Bulk hotel towels from Solapur</h2>
+<p>${esc(s.firmName)} has manufactured textiles in Solapur since ${ctx.established} and supplies wholesalers, hotels and retailers. Send your room count, sizes and preferred weight on ${waText(ctx, `Hello ${s.firmName}, I need towels for a hotel.`)} and we will reply with a quotation.</p>`;
+  const faq = [
+    ['What size towels do hotels use?', '<p>Usually a 30 × 60 inch bath towel (or 36 × 72 inch in premium rooms), a 16 × 24 inch hand towel, a 12 × 12 inch face towel and a 20 × 30 inch bath mat.</p>'],
+    ['How many towels does a hotel need per room?', '<p>A common rule is three full sets per room: one in use, one in the laundry and one in store.</p>'],
+    ['Can you supply all sizes together?', `<p>Yes. We make bath, hand and face towels and bath mats, so the whole room set can come from us. Send your requirement on ${waText(ctx, `Hello ${s.firmName}, I need complete hotel towel sets.`)}.</p>`],
+  ];
+  return guidePage(ctx, {
+    path: '/hotel-towels/',
+    crumb: 'Hotel towels',
+    title: 'Hotel Towels in Bulk: Bath, Hand, Face Towels and Bath Mats from Solapur',
+    description: `Hotel towel sets direct from a Solapur manufacturer: bath towels 30×60 and 36×72, hand towels, face towels and bath mats in bulk. ${s.firmName}, since ${ctx.established}.`,
+    h1: 'Hotel towels in bulk, made in Solapur',
+    lede: 'Complete room sets of bath, hand and face towels and bath mats, direct from the manufacturer.',
+    body,
+    faq,
+  });
 }

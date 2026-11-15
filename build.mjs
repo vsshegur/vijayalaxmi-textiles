@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { makeContext, homePage, towelsPage, categoryPage, productPage, aboutPage, contactPage, notFoundPage } from './src/templates.mjs';
+import { makeContext, homePage, towelsPage, categoryPage, productPage, aboutPage, contactPage, notFoundPage, solapurPage, terryGuidePage, sizeGuidePage, hotelPage } from './src/templates.mjs';
 import { slugify } from './src/lib.mjs';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
@@ -61,6 +61,10 @@ for (const p of products) {
   seen.add(p.slug);
   write(`/products/${p.slug}/`, productPage(ctx, p), { priority: '0.7' });
 }
+write('/solapur-towels/', solapurPage(ctx), { priority: '0.9' });
+write('/terry-towels/', terryGuidePage(ctx), { priority: '0.8' });
+write('/towel-size-guide/', sizeGuidePage(ctx), { priority: '0.8' });
+write('/hotel-towels/', hotelPage(ctx), { priority: '0.8' });
 write('/about/', aboutPage(ctx), { priority: '0.7' });
 write('/contact/', contactPage(ctx), { priority: '0.7' });
 write('/404.html', notFoundPage(ctx), { sitemap: false });
