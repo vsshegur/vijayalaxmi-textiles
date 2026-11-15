@@ -67,5 +67,6 @@
     "India",
     "China"
   ],
-  "design": "loom"
+  "design": "loom",
+  "heroImage": "/images/hero"
 }
