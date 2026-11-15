@@ -32,11 +32,17 @@ fs.writeFileSync(path.join(out, 'admin/data.json'), JSON.stringify({ settings: r
 const hash = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 10);
 const css = fs.readFileSync(path.join(root, 'src/site.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'src/site.js'), 'utf8');
-fs.mkdirSync(path.join(out, 'assets'), { recursive: true });
+// file names change whenever the content changes, so browsers never mix old and new files
+fs.mkdirSync(path.join(out, 'assets/v'), { recursive: true });
+const cssFile = `v/site.${hash(css)}.css`;
+const jsFile = `v/site.${hash(js)}.js`;
+fs.writeFileSync(path.join(out, 'assets', cssFile), css);
+fs.writeFileSync(path.join(out, 'assets', jsFile), js);
+// keep the plain names too, for anything that links to them directly
 fs.writeFileSync(path.join(out, 'assets/site.css'), css);
 fs.writeFileSync(path.join(out, 'assets/site.js'), js);
 
-const ctx = makeContext({ settings, categories, products, cssVersion: hash(css), jsVersion: hash(js) });
+const ctx = makeContext({ settings, categories, products, cssFile, jsFile });
 
 const pages = [];
 const write = (urlPath, html, { sitemap = true, priority = '0.6' } = {}) => {

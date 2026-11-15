@@ -8,7 +8,7 @@ const sizeName = (s) => SIZE_NAMES.get(norm(s)) || '';
 const nameTag = (s) => (sizeName(s) ? ` <span class="size-name">${esc(sizeName(s))}</span>` : '');
 const nameParen = (s) => (sizeName(s) ? ` (${sizeName(s)})` : '');
 
-export function makeContext({ settings, categories, products, cssVersion, jsVersion }) {
+export function makeContext({ settings, categories, products, cssFile, jsFile }) {
   SIZE_NAMES = new Map();
   for (const c of categories) for (const [k, v] of Object.entries(c.sizeNames || {})) if (v) SIZE_NAMES.set(norm(k), String(v));
   const siteUrl = String(settings.siteUrl || '').replace(/\/+$/, '');
@@ -33,7 +33,7 @@ export function makeContext({ settings, categories, products, cssVersion, jsVers
 
   return {
     settings, categories, products, siteUrl, year, established, yearsActive,
-    cssVersion, jsVersion, sizeToCat, productCats,
+    cssFile, jsFile, sizeToCat, productCats,
     city: settings.city ? String(settings.city) : '',
     design: designOf(settings),
   };
@@ -195,7 +195,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta name="theme-color" content="#1d2a5c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 ${fontPreload(ctx.design)}
-<link rel="stylesheet" href="/assets/site.css?v=${ctx.cssVersion}">
+<link rel="stylesheet" href="/assets/${ctx.cssFile}">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`).join('\n')}
 </head>
 <body class="theme-${ctx.design}">
@@ -219,7 +219,7 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).repl
 ${body}
 </main>
 ${footer(ctx)}
-<script src="/assets/site.js?v=${ctx.jsVersion}" defer></script>
+<script src="/assets/${ctx.jsFile}" defer></script>
 </body>
 </html>`;
 }
