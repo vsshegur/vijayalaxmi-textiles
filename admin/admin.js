@@ -443,22 +443,24 @@
 
   // ---------- design ----------
   const DESIGNS = [
-    ['loom', 'Loom', 'Headline with a stack of folded towels, then every size drawn to scale.', '<span class="d" style="grid-column:1/2"></span><span class="y"></span>'],
-    ['showroom', 'Showroom', 'Bold indigo banner with your ratings right at the top, then towel types.', '<span class="d" style="grid-column:1/3"></span><span></span><span></span>'],
-    ['heritage', 'Heritage', 'Large “1982” with your journey beside it, then products.', '<span class="d"></span><span class="y"></span>'],
+    ['loom', 'Loom', 'Classic Indian textile look: indigo and turmeric, serif headings, a stack of folded towels and every size drawn to scale.', 'background:#fff', '<span class="d"></span><span class="y"></span><span></span><span class="d"></span>'],
+    ['mill', 'Mill', 'Bold commercial supplier look: dark slate and bright blue, heavy headings, square edges, size chart and key numbers up top.', 'background:#16202c', '<span style="background:#0b63ce"></span><span style="background:#fff"></span><span style="background:#0b63ce;grid-column:1/3"></span>'],
+    ['spa', 'Spa', 'Soft home and hotel look: sage and blush, light rounded type, rolled towels, rounded cards.', 'background:#eef3ef', '<span style="background:#a9c4b2;border-radius:50%"></span><span style="background:#f1d3c9;border-radius:50%"></span><span style="background:#c9d8e8;border-radius:50%"></span><span style="background:#4f7b63;border-radius:50%"></span>'],
   ];
+  const currentDesign = () => state.settings.design || { showroom: 'mill', heritage: 'spa' }[state.settings.homeLayout] || 'loom';
   function renderDesign() {
-    const cur = state.settings.homeLayout || 'loom';
-    $('#design-list').innerHTML = DESIGNS.map(([k, name, desc, thumb]) => `<label class="design">
+    const cur = currentDesign();
+    $('#design-list').innerHTML = DESIGNS.map(([k, name, desc, bg, thumb]) => `<label class="design">
       <input type="radio" name="design" value="${k}"${k === cur ? ' checked' : ''}>
-      <div class="design-thumb" style="grid-template-columns:1fr 1fr">${thumb}</div>
+      <div class="design-thumb" style="grid-template-columns:1fr 1fr;${bg}">${thumb}</div>
       <span class="design-name">${esc(name)}</span>
       <span class="muted">${esc(desc)}</span>
     </label>`).join('');
   }
   $('#design-list').addEventListener('change', (e) => {
     if (e.target.name !== 'design') return;
-    state.settings.homeLayout = e.target.value;
+    state.settings.design = e.target.value;
+    delete state.settings.homeLayout;
     setDirty(true);
   });
 

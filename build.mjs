@@ -6,7 +6,7 @@ import { makeContext, homePage, towelsPage, categoryPage, productPage, aboutPage
 import { slugify } from './src/lib.mjs';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
-const out = path.join(root, 'dist');
+const out = path.resolve(root, process.env.OUT_DIR || 'dist');
 const read = (f) => JSON.parse(fs.readFileSync(path.join(root, f), 'utf8'));
 
 const settings = read('data/settings.json');
@@ -16,6 +16,7 @@ const products = read('data/products.json')
   .map((p) => ({ ...p, slug: p.slug || slugify(p.name) }));
 
 if (process.env.SITE_URL) settings.siteUrl = process.env.SITE_URL;
+if (process.env.DESIGN) settings.design = process.env.DESIGN; // for previews
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });

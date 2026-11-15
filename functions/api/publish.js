@@ -78,7 +78,8 @@ function cleanSettings(s) {
     }
   }
   out.established = Number(s.established) || 1982;
-  if (!['loom', 'showroom', 'heritage'].includes(out.homeLayout)) out.homeLayout = 'loom';
+  if (!['loom', 'mill', 'spa'].includes(out.design)) out.design = 'loom';
+  delete out.homeLayout;
   return out;
 }
 

@@ -27,7 +27,22 @@ export function makeContext({ settings, categories, products, cssVersion, jsVers
     settings, categories, products, siteUrl, year, established, yearsActive,
     cssVersion, jsVersion, sizeToCat, productCats,
     city: settings.city ? String(settings.city) : '',
+    design: designOf(settings),
   };
+}
+
+export function designOf(settings) {
+  const d = settings.design || { showroom: 'mill', heritage: 'spa' }[settings.homeLayout] || settings.homeLayout;
+  return ['loom', 'mill', 'spa'].includes(d) ? d : 'loom';
+}
+
+function fontPreload(design) {
+  const files = { loom: ['lora-var', 'inter-400'], mill: ['interdisplay-800', 'inter-400'], spa: ['poppins-300', 'poppins-400'] }[design] || [];
+  return files.map((f) => `<link rel="preload" href="/assets/fonts/${f}.woff" as="font" type="font/woff" crossorigin>`).join('\n');
+}
+
+function roll(colour, size) {
+  return `<span class="roll" style="--c:${esc(colour)};--s:${size}" aria-hidden="true"></span>`;
 }
 
 export const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, '').replace('×', 'x');
@@ -53,7 +68,7 @@ function stars(rating, id) {
   const r = Math.max(0, Math.min(5, Number(rating) || 0));
   const pct = (r / 5) * 100;
   const star = (i) => `<path transform="translate(${i * 24} 0)" d="M12 1.8l3.1 6.4 7 1-5.1 4.9 1.2 7-6.2-3.3-6.2 3.3 1.2-7L1.9 9.2l7-1z"/>`;
-  return `<svg class="stars" viewBox="0 0 120 24" aria-hidden="true"><defs><linearGradient id="g${id}"><stop offset="${pct}%" stop-color="var(--turmeric)"/><stop offset="${pct}%" stop-color="var(--line)"/></linearGradient></defs><g fill="url(#g${id})">${[0, 1, 2, 3, 4].map(star).join('')}</g></svg>`;
+  return `<svg class="stars" viewBox="0 0 120 24" aria-hidden="true"><defs><linearGradient id="g${id}"><stop offset="${pct}%" stop-color="var(--star)"/><stop offset="${pct}%" stop-color="var(--line)"/></linearGradient></defs><g fill="url(#g${id})">${[0, 1, 2, 3, 4].map(star).join('')}</g></svg>`;
 }
 
 function ratingCards(ctx) {
@@ -171,13 +186,11 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1d2a5c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Rozha+One&display=swap">
+${fontPreload(ctx.design)}
 <link rel="stylesheet" href="/assets/site.css?v=${ctx.cssVersion}">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`).join('\n')}
 </head>
-<body>
+<body class="theme-${ctx.design}">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap header-inner">
@@ -301,9 +314,9 @@ function crumbNav(items) {
 
 // ---------- pages ----------
 
-export function homePage(ctx, layoutName) {
+export function homePage(ctx) {
   const s = ctx.settings;
-  const variant = layoutName || s.homeLayout || 'loom';
+  const variant = ctx.design;
   const featured = ctx.products.filter((p) => p.featured);
   const showcase = (featured.length ? featured : ctx.products).slice(0, 6);
   const indiamart = (s.ratings || []).find((r) => /indiamart/i.test(r.platform) && r.rating !== '');
@@ -336,35 +349,67 @@ export function homePage(ctx, layoutName) {
 </section>`;
   };
 
-  const heroShowroom = () => `<section class="hero-show">
-  <div class="hero-show-cloth terry" style="--c:#1d2a5c" aria-hidden="true"><span class="terry-band"></span><span class="terry-band terry-band--low"></span></div>
-  <div class="wrap hero-show-inner">
-    <p class="hero-show-kicker">${esc(s.businessType || 'Terry towel manufacturer')}${cityIn}</p>
-    <h1 class="display display--show">Towels woven for trade, since ${ctx.established}.</h1>
-    <p class="lede lede--light">${lede}</p>
-    <div class="btn-row">
-      <a class="btn btn--light" href="/towels/">See our towels</a>
-      <a class="btn btn--ghost-light" href="/contact/">Ask for a quotation</a>
+  const heroMill = () => `<section class="mill-hero">
+  <div class="wrap mill-hero-grid">
+    <div>
+      <p class="mill-kicker">${esc(s.businessType || 'Terry towel manufacturer')}${cityIn}</p>
+      <h1 class="display">Terry towels in every standard size. Since ${ctx.established}.</h1>
+      <p class="lede">${lede}</p>
+      <div class="btn-row">
+        <a class="btn btn--primary" href="/towels/">See our towels</a>
+        <a class="btn btn--ghost-light" href="/contact/">Ask for a quotation</a>
+      </div>
+    </div>
+    <div class="mill-sheet">
+      <h2 class="mill-sheet-h">Standard sizes, in inches</h2>
+      <table>
+        <tbody>${ctx.categories.map((c) => `<tr><th scope="row"><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></th><td>${(c.sizes || []).map((sz) => esc(sizeShort(sz))).join(', ')}</td></tr>`).join('')}</tbody>
+      </table>
+      <a class="mill-sheet-link" href="/towels/">Browse the full range</a>
     </div>
   </div>
-  ${ratingCards(ctx) ? `<div class="wrap hero-show-trust">${ratingCards(ctx)}</div>` : ''}
+</section>
+<section class="mill-stats" aria-label="Key facts">
+  <dl class="wrap mill-stats-grid">
+    <div><dt>Established</dt><dd>${ctx.established}</dd></div>
+    ${indiamart ? `<div><dt>Rating on IndiaMART</dt><dd>${esc(Number(indiamart.rating).toFixed(1))}/5</dd></div>` : ''}
+    ${indiamart && indiamart.reviews ? `<div><dt>Trusted buyers on IndiaMART</dt><dd>${esc(indiamart.reviews)}</dd></div>` : ''}
+    <div><dt>Standard towel sizes</dt><dd>${ctx.categories.reduce((n, c) => n + (c.sizes || []).length, 0)}</dd></div>
+  </dl>
 </section>`;
 
-  const heroHeritage = () => `<section class="hero-heritage">
-  <div class="wrap heritage-grid">
-    <div>
-      <p class="heritage-year" aria-hidden="true">${ctx.established}</p>
-      <h1 class="display display--heritage">${ctx.yearsActive} years of cotton, now devoted to towels.</h1>
-      <p class="lede">${lede}</p>
-      ${heroButtons}
-    </div>
-    <div class="heritage-side">
-      <h2 class="h3">How we got here</h2>
-      ${timeline(ctx)}
+  const heroSpa = () => {
+    const rolls = [['#a9c4b2', 1], ['#f1d3c9', 0.8], ['#ffffff', 1.15], ['#c9d8e8', 0.85], ['#e8dcc6', 0.95], ['#6f8f7a', 0.7]];
+    return `<section class="spa-hero">
+  <div class="wrap spa-hero-inner">
+    <p class="spa-kicker">${esc(ctx.city || 'India')}, since ${ctx.established}</p>
+    <h1 class="display">Soft, absorbent towels, made with care for ${ctx.yearsActive} years.</h1>
+    <p class="lede">${lede}</p>
+    <div class="btn-row">
+      <a class="btn btn--primary" href="/towels/">See our towels</a>
+      <a class="btn btn--ghost" href="/contact/">Ask for a quotation</a>
     </div>
   </div>
-  <div class="border-band" aria-hidden="true"></div>
+  <div class="spa-rolls">${rolls.map(([c, sz]) => roll(c, sz)).join('')}</div>
 </section>`;
+  };
+
+  const catRolls = () => {
+    const palette = ['#a9c4b2', '#f1d3c9', '#c9d8e8', '#e8dcc6', '#6f8f7a', '#d9c2e0'];
+    return `<section class="section" aria-labelledby="cats-h">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <h2 id="cats-h" class="h2">Find the right towel</h2>
+      <p>All sizes are in inches.</p>
+    </div>
+    <ul class="spa-cats">${ctx.categories.map((c, i) => {
+      const big = Math.max(...(c.sizes || ['10x10']).map((sz) => { const d = parseSize(sz); return d ? d.w * d.h : 100; }));
+      const scale = Math.max(0.55, Math.min(1.1, Math.sqrt(big / 2592) * 1.1));
+      return `<li><a href="/towels/${esc(c.slug)}/">${roll(palette[i % palette.length], scale.toFixed(2))}<span class="spa-cat-name">${esc(c.name)}</span><span class="spa-cat-sizes">${(c.sizes || []).map(sizeShort).join(', ')}</span></a></li>`;
+    }).join('')}</ul>
+  </div>
+</section>`;
+  };
 
   const scaleSection = () => `<section class="section section--scale" aria-labelledby="sizes-h">
   <div class="wrap">
@@ -443,8 +488,8 @@ export function homePage(ctx, layoutName) {
 
   const orders = {
     loom: [heroLoom, scaleSection, featuredSection, storySection, trustSection],
-    showroom: [heroShowroom, catTiles, featuredSection, valuesSection],
-    heritage: [heroHeritage, featuredSection, scaleSection, trustSection, valuesSection],
+    mill: [heroMill, catTiles, featuredSection, trustSection, valuesSection],
+    spa: [heroSpa, catRolls, featuredSection, valuesSection, storySection, trustSection],
   };
   const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + enquiryBand(ctx);
 

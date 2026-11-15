@@ -56,7 +56,7 @@ Open `https://YOUR-DOMAIN/admin`, sign in with `ADMIN_USER` / `ADMIN_PASSWORD`.
 - **Towel types & sizes**: rename types, add sizes (written like `30x60`), add new types such as Kitchen Towels.
 - **Ratings**: update your IndiaMART, Google and Justdial rating, review count and profile link.
 - **Business details**: phone, WhatsApp, address, GSTIN, About text, and the lists used in the product form.
-- **Homepage design**: switch between the Loom, Showroom and Heritage layouts.
+- **Website design**: switch the whole site between the Loom, Mill and Spa designs.
 
 Nothing changes on the live site until you press **Publish changes**. Unpublished edits are kept on your device if you close the tab.
 
@@ -68,7 +68,7 @@ src/templates.mjs    page templates
 src/site.css         site styles
 src/site.js          size picker, filters, enquiry form
 data/                settings, towel types and products (edited by the admin panel)
-static/              favicon, logo, share image, product photos, Cloudflare _headers/_routes
+static/              favicon, logo, share image, fonts, product photos, Cloudflare _headers/_routes
 admin/               the admin panel
 functions/           Cloudflare Pages Functions: login check, read data, publish to GitHub
 lib/github.js        GitHub helper used by the functions
