@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin | Vijayalaxmi Textiles</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="bar">
+  <div class="bar-inner">
+    <a class="bar-brand" href="/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="6" width="34" height="28" rx="4" fill="#1d2a5c"/><rect x="3" y="11" width="34" height="3" fill="#e2a12a"/><rect x="3" y="26" width="34" height="3" fill="#e2a12a"/><path d="M12 15.5l8 9 8-9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Site admin</span>
+    </a>
+    <div class="bar-actions">
+      <span class="status" id="status" role="status" aria-live="polite"></span>
+      <button class="btn btn--primary" id="publish" disabled>Publish changes</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" aria-selected="true" data-tab="products">Products</button>
+    <button role="tab" aria-selected="false" data-tab="types">Towel types &amp; sizes</button>
+    <button role="tab" aria-selected="false" data-tab="ratings">Ratings</button>
+    <button role="tab" aria-selected="false" data-tab="business">Business details</button>
+    <button role="tab" aria-selected="false" data-tab="design">Homepage design</button>
+  </nav>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<main class="main">
+  <section data-panel="products">
+    <div class="panel-head">
+      <div>
+        <h1>Products</h1>
+        <p class="muted" id="product-count"></p>
+      </div>
+      <button class="btn btn--primary" id="add-product">Add product</button>
+    </div>
+    <div class="search"><input type="search" id="product-search" placeholder="Search products by name" aria-label="Search products"></div>
+    <ul class="plist" id="product-list"></ul>
+  </section>
+
+  <section data-panel="types" hidden>
+    <div class="panel-head">
+      <div>
+        <h1>Towel types &amp; sizes</h1>
+        <p class="muted">Each type gets its own page on the site. Sizes are in inches, written like 30x60.</p>
+      </div>
+      <button class="btn" id="add-type">Add towel type</button>
+    </div>
+    <div id="type-list" class="stack"></div>
+  </section>
+
+  <section data-panel="ratings" hidden>
+    <div class="panel-head">
+      <div>
+        <h1>Ratings</h1>
+        <p class="muted">Update these numbers whenever your ratings change. Leave the rating empty to show only a link to the profile.</p>
+      </div>
+      <button class="btn" id="add-rating">Add platform</button>
+    </div>
+    <div id="rating-list" class="stack"></div>
+  </section>
+
+  <section data-panel="business" hidden>
+    <div class="panel-head"><div><h1>Business details</h1><p class="muted">Shown in the footer, contact page and to Google.</p></div></div>
+    <form id="business-form" class="card form-grid" autocomplete="off"></form>
+  </section>
+
+  <section data-panel="design" hidden>
+    <div class="panel-head"><div><h1>Homepage design</h1><p class="muted">Pick the layout of your home page. Other pages stay the same.</p></div></div>
+    <div id="design-list" class="designs"></div>
+  </section>
+</main>
+
+<dialog id="editor" class="editor" aria-labelledby="editor-title">
+  <form method="dialog" id="product-form" novalidate>
+    <header class="editor-head">
+      <h2 id="editor-title">Edit product</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+    </header>
+    <div class="editor-body">
+      <div class="field">
+        <label for="p-name">Product name</label>
+        <input id="p-name" name="name" required placeholder="For example, Royal Dobby Bath Towel">
+        <p class="error" data-error="name" hidden>Enter a product name.</p>
+      </div>
+
+      <fieldset class="field">
+        <legend>Sizes and weight</legend>
+        <p class="hint">Tick every size this product is made in. The product shows on each matching towel type page. Weight is optional, per size.</p>
+        <div id="p-sizes" class="size-table"></div>
+        <div class="inline">
+          <input id="p-custom-size" placeholder="Other size, e.g. 27x54" aria-label="Other size">
+          <button type="button" class="btn btn--small" id="p-add-size">Add size</button>
+        </div>
+        <p class="error" data-error="sizes" hidden>Tick at least one size.</p>
+      </fieldset>
+
+      <div class="two">
+        <div class="field">
+          <label for="p-material">Material</label>
+          <select id="p-material" name="material"></select>
+          <input id="p-material-other" class="mt" placeholder="Type the material" hidden aria-label="Other material">
+        </div>
+        <div class="field" id="origin-field" hidden>
+          <label for="p-origin">Country of origin</label>
+          <select id="p-origin" name="origin"></select>
+          <input id="p-origin-other" class="mt" placeholder="Type the country" hidden aria-label="Other country">
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="p-pattern">Pattern type</label>
+          <select id="p-pattern" name="pattern"></select>
+          <input id="p-pattern-other" class="mt" placeholder="Type the pattern" hidden aria-label="Other pattern">
+        </div>
+        <div class="field">
+          <label for="p-moq">Minimum order quantity <span class="opt">optional</span></label>
+          <input id="p-moq" name="moq" placeholder="For example, 500 pieces">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="p-desc">Description <span class="opt">optional</span></label>
+        <textarea id="p-desc" name="description" rows="3" placeholder="What makes this towel good: softness, absorbency, border, use"></textarea>
+      </div>
+
+      <fieldset class="field">
+        <legend>Photos</legend>
+        <p class="hint">The first photo is the main one. Photos are resized automatically.</p>
+        <ul id="p-photos" class="photos"></ul>
+        <label class="btn btn--small file-btn">Add photos<input type="file" id="p-file" accept="image/*" multiple hidden></label>
+      </fieldset>
+
+      <div class="two">
+        <div class="field">
+          <label for="p-colour">Placeholder colour</label>
+          <div class="inline"><input type="color" id="p-colour" name="colour" value="#34489c"><span class="hint">Shown until you add photos.</span></div>
+        </div>
+        <div class="field checks">
+          <label><input type="checkbox" id="p-featured"> Show on home page</label>
+          <label><input type="checkbox" id="p-hidden"> Hide from site</label>
+        </div>
+      </div>
+    </div>
+    <footer class="editor-foot">
+      <button type="button" class="btn btn--danger-text" id="p-delete">Delete product</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn btn--primary" id="p-save">Save product</button>
+    </footer>
+  </form>
+</dialog>
+
+<script src="/admin/admin.js" defer></script>
+</body>
+</html>

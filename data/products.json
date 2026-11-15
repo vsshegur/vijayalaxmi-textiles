@@ -1,0 +1,94 @@
+[
+  {
+    "id": "p1",
+    "slug": "classic-plain-terry-towel",
+    "name": "Classic Plain Terry Towel",
+    "material": "100% Cotton",
+    "pattern": "Plain",
+    "description": "A dependable plain-dyed terry towel with a soft, absorbent loop pile and a neat woven border. Sample product: edit or remove it in the admin panel.",
+    "moq": "",
+    "featured": true,
+    "colour": "#3d5a9e",
+    "images": [],
+    "sizes": [
+      {
+        "size": "30x60",
+        "weight": ""
+      },
+      {
+        "size": "36x72",
+        "weight": ""
+      },
+      {
+        "size": "16x24",
+        "weight": ""
+      },
+      {
+        "size": "12x12",
+        "weight": ""
+      }
+    ],
+    "origin": "India"
+  },
+  {
+    "id": "p2",
+    "slug": "dobby-border-bath-towel",
+    "name": "Dobby Border Bath Towel",
+    "material": "100% Cotton",
+    "pattern": "Dobby border",
+    "description": "Terry bath towel finished with a woven dobby border. Sample product: edit or remove it in the admin panel.",
+    "moq": "",
+    "featured": true,
+    "colour": "#b5473a",
+    "images": [],
+    "sizes": [
+      {
+        "size": "30x60",
+        "weight": ""
+      }
+    ],
+    "origin": "India"
+  },
+  {
+    "id": "p3",
+    "slug": "striped-baby-bath-towel",
+    "name": "Striped Baby Bath Towel",
+    "material": "100% Cotton",
+    "pattern": "Striped",
+    "description": "Light, soft striped terry towel sized for babies. Sample product: edit or remove it in the admin panel.",
+    "moq": "",
+    "featured": true,
+    "colour": "#d9a21b",
+    "images": [],
+    "sizes": [
+      {
+        "size": "24x48",
+        "weight": ""
+      },
+      {
+        "size": "20x40",
+        "weight": ""
+      }
+    ],
+    "origin": "India"
+  },
+  {
+    "id": "p4",
+    "slug": "terry-bath-mat",
+    "name": "Terry Bath Mat",
+    "material": "100% Cotton",
+    "pattern": "Plain",
+    "description": "Heavy terry bath mat with a dense pile. Sample product: edit or remove it in the admin panel.",
+    "moq": "",
+    "featured": false,
+    "colour": "#2f7a6b",
+    "images": [],
+    "sizes": [
+      {
+        "size": "20x30",
+        "weight": ""
+      }
+    ],
+    "origin": "India"
+  }
+]
