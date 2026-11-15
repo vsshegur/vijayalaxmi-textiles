@@ -18,17 +18,34 @@
     if (params.get('size')) state.size = params.get('size');
     if (params.get('type')) state.cat = params.get('type');
     const empty = document.querySelector('[data-empty]');
+    // sizes that belong to each towel type, read from the size buttons
+    const catSizes = {};
+    document.querySelectorAll('[data-size-cat]').forEach((b) => {
+      (catSizes[b.dataset.sizeCat] ||= []).push(b.dataset.filterSize);
+    });
     const apply = () => {
+      const allowed = state.cat && catSizes[state.cat] ? catSizes[state.cat] : null;
+      if (allowed && state.size && !allowed.includes(state.size)) state.size = '';
       let shown = 0;
       grid.querySelectorAll('.card').forEach((card) => {
         const okCat = !state.cat || card.dataset.cats.split(' ').includes(state.cat);
         const okSize = !state.size || card.dataset.sizes.split(' ').includes(state.size);
         card.hidden = !(okCat && okSize);
         if (!card.hidden) shown++;
+        // on each card, show only the sizes of the chosen type
+        card.querySelectorAll('[data-chip-size]').forEach((li) => {
+          li.hidden = !!allowed && !allowed.includes(li.dataset.chipSize);
+        });
+        const firstChip = card.querySelector('[data-chip-size]:not([hidden]) a');
+        const link = card.querySelector('.card-link');
+        if (firstChip && link) link.href = firstChip.getAttribute('href');
       });
       if (empty) empty.hidden = shown > 0;
       document.querySelectorAll('[data-filter-cat]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filterCat === state.cat)));
-      document.querySelectorAll('[data-filter-size]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filterSize === state.size)));
+      document.querySelectorAll('[data-filter-size]').forEach((b) => {
+        b.setAttribute('aria-pressed', String(b.dataset.filterSize === state.size));
+        if (b.dataset.sizeCat) b.hidden = !!allowed && b.dataset.sizeCat !== state.cat;
+      });
     };
     document.addEventListener('click', (e) => {
       const c = e.target.closest('[data-filter-cat]');

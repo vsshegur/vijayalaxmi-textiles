@@ -100,7 +100,7 @@ function sizeFigure(size, colour, { caption = true } = {}) {
 
 function sizeChips(sizes, { href } = {}) {
   return `<ul class="chips">${sizes
-    .map((s) => `<li>${href ? `<a class="chip" href="${esc(href(s))}">${esc(sizeShort(s.size || s))}</a>` : `<span class="chip">${esc(sizeShort(s.size || s))}</span>`}</li>`)
+    .map((s) => `<li data-chip-size="${esc(norm(s.size || s))}">${href ? `<a class="chip" href="${esc(href(s))}">${esc(sizeShort(s.size || s))}</a>` : `<span class="chip">${esc(sizeShort(s.size || s))}</span>`}</li>`)
     .join('')}</ul>`;
 }
 
@@ -520,7 +520,7 @@ function enquiryBand(ctx) {
 }
 
 export function towelsPage(ctx) {
-  const allSizes = ctx.categories.flatMap((c) => c.sizes || []);
+  const allSizes = ctx.categories.flatMap((c) => (c.sizes || []).map((sz) => ({ sz, cat: c.slug })));
   const body = `
 <section class="page-head">
   <div class="wrap">
@@ -538,7 +538,7 @@ export function towelsPage(ctx) {
       </div>
       <div class="filter-group" role="group" aria-label="Filter by size">
         <button class="chip chip--btn" aria-pressed="true" data-filter-size="">All sizes</button>
-        ${allSizes.map((sz) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}">${esc(sizeShort(sz))}</button>`).join('')}
+        ${allSizes.map(({ sz, cat }) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}" data-size-cat="${esc(cat)}">${esc(sizeShort(sz))}</button>`).join('')}
       </div>
     </div>
     ${ctx.products.length ? `<ul class="grid" data-grid>${ctx.products.map((p) => productCard(ctx, p)).join('')}</ul>

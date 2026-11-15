@@ -621,3 +621,5 @@ body.theme-spa { background: #fbfcfa; line-height: 1.7; }
   .hero--photo .hero-grid { grid-template-columns: 1fr; padding-top: 1.75rem; }
   .hero--photo .hero-copy { background: none; padding: 0; }
 }
+
+.chip--btn[hidden], .chips li[hidden] { display: none; }
