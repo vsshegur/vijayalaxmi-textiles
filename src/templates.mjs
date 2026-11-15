@@ -344,10 +344,9 @@ export function homePage(ctx) {
     const stack = ['#1d2a5c', '#e2a12a', '#f4f5f8', '#2f7a6b', '#b5473a'];
     const img = s.heroImage;
     const visual = img
-      ? `<picture class="hero-photo"><img src="${esc(img)}-1400.webp" srcset="${esc(img)}-900.webp 900w, ${esc(img)}-1400.webp 1400w, ${esc(img)}-2400.webp 2400w" sizes="(max-width: 860px) 100vw, 75vw" width="2400" height="1340" alt="Stacks of ${esc(s.firmName)} terry towels in many colours, plain, striped, dobby border and jacquard designs" fetchpriority="high"></picture>`
+      ? `<picture class="hero-photo"><img src="${esc(img)}-1400.webp" srcset="${esc(img)}-900.webp 900w, ${esc(img)}-1400.webp 1400w, ${esc(img)}-2000.webp 2000w" sizes="(max-width: 860px) 100vw, 640px" width="2000" height="1512" alt="Stacks of ${esc(s.firmName)} terry towels in many colours, plain, striped, dobby border and jacquard designs" fetchpriority="high"></picture>`
       : `<div class="hero-stack" aria-hidden="true">${stack.map((c, i) => `<div class="fold" style="--c:${c};--i:${i}"><span class="terry-band"></span></div>`).join('')}</div>`;
     return `<section class="hero${img ? ' hero--photo' : ''}">
-  ${img ? visual : ''}
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1 class="display">Terry towels, made${cityIn} since ${ctx.established}.</h1>
@@ -355,7 +354,7 @@ export function homePage(ctx) {
       ${heroButtons}
       ${facts}
     </div>
-    ${img ? '' : visual}
+    ${visual}
   </div>
 </section>`;
   };
