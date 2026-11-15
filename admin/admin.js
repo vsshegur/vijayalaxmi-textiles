@@ -422,6 +422,7 @@
     ['h', 'Contact'],
     ['phone', 'Phone'], ['whatsapp', 'WhatsApp number'],
     ['email', 'Email', 'email'], ['languages', 'Languages you reply in'],
+    ['whatsappGreeting', 'Message typed for buyers when they tap “Chat on WhatsApp” in the footer', 'textarea', 'wide'],
     ['addressLine', 'Street / area', 'text', 'wide'], ['city', 'City'], ['state', 'State'],
     ['pincode', 'PIN code'], ['gstin', 'GSTIN'], ['hours', 'Working hours'],
     ['mapUrl', 'Google Maps link or embed link', 'url'],

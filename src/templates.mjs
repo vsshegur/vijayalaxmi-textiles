@@ -246,6 +246,11 @@ function footer(ctx) {
   const s = ctx.settings;
   const addr = [s.addressLine, [s.city, s.state].filter(Boolean).join(', '), s.pincode].filter(Boolean).join(', ');
   const profiles = (s.ratings || []).filter((r) => r.url).map((r) => [r.platform, r.url]);
+  const greet = s.whatsappGreeting || `Hi ${s.firmName}, I was searching for towels on your website.`;
+  const waHref = waLink(s, greet);
+  const footerWa = waHref
+    ? `<a class="btn btn--wa" href="${esc(waHref)}" target="_blank" rel="noopener">${waIcon()}Chat on WhatsApp</a>${s.languages ? `<p class="footer-wa-note">${esc(s.whatsapp || s.phone)}. We reply in ${esc(s.languages)}.</p>` : ''}`
+    : '';
   if (s.flipkartUrl) profiles.push(['Flipkart', s.flipkartUrl]);
   return `<footer class="site-footer">
   <div class="border-band" aria-hidden="true"></div>
@@ -253,6 +258,7 @@ function footer(ctx) {
     <div class="footer-brand">
       <a class="brand brand--light" href="/">${brandLogo(ctx, true)}<span class="brand-text"><span class="brand-name">${esc(s.firmName)}</span><span class="brand-sub">Terry towels since ${ctx.established}</span></span></a>
       <p>Manufacturers of terry bath towels, baby bath towels, hand towels, face towels and bath mats${ctx.city ? ` in ${esc(ctx.city)}` : ''}.</p>
+      ${footerWa}
     </div>
     <div>
       <h2 class="footer-h">Towels</h2>
