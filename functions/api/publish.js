@@ -47,11 +47,17 @@ function cleanCategories(list) {
     let slug = slugify(c.slug || name);
     while (seen.has(slug)) slug = `${slug}-${i + 1}`;
     seen.add(slug);
+    const sizes = (Array.isArray(c.sizes) ? c.sizes : []).map((s) => str(s, 20).toLowerCase().replace(/\s+/g, '').replace('×', 'x')).filter((s) => /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(s));
+    const sizeNames = {};
+    for (const [k, v] of Object.entries(c.sizeNames && typeof c.sizeNames === 'object' ? c.sizeNames : {})) {
+      if (sizes.includes(k) && str(v, 30)) sizeNames[k] = str(v, 30);
+    }
     return {
       slug,
       name,
       singular: str(c.singular, 80) || name,
-      sizes: (Array.isArray(c.sizes) ? c.sizes : []).map((s) => str(s, 20).toLowerCase().replace(/\s+/g, '').replace('×', 'x')).filter((s) => /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(s)),
+      sizes,
+      sizeNames,
       description: str(c.description, 600),
     };
   });

@@ -179,6 +179,7 @@
     const box = $('#p-sizes');
     const chosen = new Map(editing.sizes.map((s) => [s.size, s.weight]));
     const groups = state.categories.map((c) => ({ title: c.name, sizes: c.sizes || [] }));
+    const names = Object.assign({}, ...state.categories.map((c) => c.sizeNames || {}));
     const known = new Set(groups.flatMap((g) => g.sizes));
     const extra = editing.sizes.map((s) => s.size).filter((s) => !known.has(s));
     if (extra.length) groups.push({ title: 'Other sizes', sizes: extra });
@@ -188,7 +189,7 @@
         const on = chosen.has(s);
         const id = `sz-${s.replace(/\W/g, '_')}`;
         return `<div class="size-row">
-          <label for="${id}"><input type="checkbox" id="${id}" data-size="${esc(s)}"${on ? ' checked' : ''}> ${esc(showSize(s))}</label>
+          <label for="${id}"><input type="checkbox" id="${id}" data-size="${esc(s)}"${on ? ' checked' : ''}> ${esc(showSize(s))}${names[s] ? ` <span class="tag">${esc(names[s])}</span>` : ''}</label>
           <input type="text" data-weight="${esc(s)}" value="${esc(chosen.get(s) || '')}" placeholder="Weight, e.g. 450 g" aria-label="Weight for ${esc(showSize(s))}"${on ? '' : ' disabled'}>
         </div>`;
       }).join('')}
@@ -333,6 +334,7 @@
       <div class="field"><label>Name (plural)</label><input data-k="name" value="${esc(c.name)}" placeholder="Bath Towels"></div>
       <div class="field"><label>Name (one item)</label><input data-k="singular" value="${esc(c.singular || '')}" placeholder="Bath towel"></div>
       <div class="field wide"><label>Sizes in inches, separated by commas</label><input data-k="sizes" value="${esc((c.sizes || []).join(', '))}" placeholder="30x60, 36x72"></div>
+      <div class="field wide"><label>Size names <span class="opt">optional, one per line, e.g. 30x60 = Standard</span></label><textarea data-k="sizeNames" rows="2" placeholder="30x60 = Standard">${esc(Object.entries(c.sizeNames || {}).map(([k, v]) => `${k} = ${v}`).join('\n'))}</textarea></div>
       <div class="field wide"><label>Description for this page and Google</label><textarea data-k="description" rows="2">${esc(c.description || '')}</textarea></div>
       <div class="wide row-actions"><button type="button" class="btn btn--danger-text" data-del-type="${i}">Delete this type</button></div>
     </div>`).join('');
@@ -341,7 +343,18 @@
     const card = e.target.closest('[data-type]'); const k = e.target.dataset.k;
     if (!card || !k) return;
     const c = state.categories[+card.dataset.type];
-    if (k === 'sizes') {
+    if (k === 'sizeNames') {
+      const names = {};
+      const bad = [];
+      e.target.value.split('\n').map((l) => l.trim()).filter(Boolean).forEach((line) => {
+        const [sz, ...rest] = line.split('=');
+        const key = normSize(sz); const name = rest.join('=').trim();
+        if (validSize(key) && name) names[key] = name; else bad.push(line);
+      });
+      if (bad.length) alert(`Write each line like 30x60 = Standard. Not understood: ${bad.join(', ')}`);
+      c.sizeNames = names;
+      e.target.value = Object.entries(names).map(([k2, v]) => `${k2} = ${v}`).join('\n');
+    } else if (k === 'sizes') {
       const parts = e.target.value.split(/[,;\n]+/).map(normSize).filter(Boolean);
       const bad = parts.filter((s) => !validSize(s));
       if (bad.length) { alert(`These sizes are not in the form 30x60: ${bad.join(', ')}`); }

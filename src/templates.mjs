@@ -2,7 +2,15 @@ import { esc, parseSize, sizeLabel, sizeShort, sizeCm, waLink, paragraphs } from
 
 // ---------- shared context ----------
 
+// size -> name (e.g. 30x60 -> Standard), filled by makeContext
+let SIZE_NAMES = new Map();
+const sizeName = (s) => SIZE_NAMES.get(norm(s)) || '';
+const nameTag = (s) => (sizeName(s) ? ` <span class="size-name">${esc(sizeName(s))}</span>` : '');
+const nameParen = (s) => (sizeName(s) ? ` (${sizeName(s)})` : '');
+
 export function makeContext({ settings, categories, products, cssVersion, jsVersion }) {
+  SIZE_NAMES = new Map();
+  for (const c of categories) for (const [k, v] of Object.entries(c.sizeNames || {})) if (v) SIZE_NAMES.set(norm(k), String(v));
   const siteUrl = String(settings.siteUrl || '').replace(/\/+$/, '');
   const year = new Date().getFullYear();
   const established = Number(settings.established) || 1982;
@@ -94,13 +102,13 @@ function sizeFigure(size, colour, { caption = true } = {}) {
   if (!p) return '';
   return `<figure class="scale-item" style="--w:${p.w};--h:${p.h}">
     <div class="scale-towel">${towelSwatch(colour, { label: sizeLabel(size) })}</div>
-    ${caption ? `<figcaption>${esc(sizeShort(size))}</figcaption>` : ''}
+    ${caption ? `<figcaption>${esc(sizeShort(size))}${nameTag(size)}</figcaption>` : ''}
   </figure>`;
 }
 
 function sizeChips(sizes, { href } = {}) {
   return `<ul class="chips">${sizes
-    .map((s) => `<li data-chip-size="${esc(norm(s.size || s))}">${href ? `<a class="chip" href="${esc(href(s))}">${esc(sizeShort(s.size || s))}</a>` : `<span class="chip">${esc(sizeShort(s.size || s))}</span>`}</li>`)
+    .map((s) => `<li data-chip-size="${esc(norm(s.size || s))}">${href ? `<a class="chip" href="${esc(href(s))}">${esc(sizeShort(s.size || s))}${nameTag(s.size || s)}</a>` : `<span class="chip">${esc(sizeShort(s.size || s))}${nameTag(s.size || s)}</span>`}</li>`)
     .join('')}</ul>`;
 }
 
@@ -366,7 +374,7 @@ export function homePage(ctx) {
     <div class="mill-sheet">
       <h2 class="mill-sheet-h">Standard sizes, in inches</h2>
       <table>
-        <tbody>${ctx.categories.map((c) => `<tr><th scope="row"><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></th><td>${(c.sizes || []).map((sz) => esc(sizeShort(sz))).join(', ')}</td></tr>`).join('')}</tbody>
+        <tbody>${ctx.categories.map((c) => `<tr><th scope="row"><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></th><td>${(c.sizes || []).map((sz) => esc(sizeShort(sz) + nameParen(sz))).join(', ')}</td></tr>`).join('')}</tbody>
       </table>
       <a class="mill-sheet-link" href="/towels/">Browse the full range</a>
     </div>
@@ -538,7 +546,7 @@ export function towelsPage(ctx) {
       </div>
       <div class="filter-group" role="group" aria-label="Filter by size">
         <button class="chip chip--btn" aria-pressed="true" data-filter-size="">All sizes</button>
-        ${allSizes.map(({ sz, cat }) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}" data-size-cat="${esc(cat)}">${esc(sizeShort(sz))}</button>`).join('')}
+        ${allSizes.map(({ sz, cat }) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}" data-size-cat="${esc(cat)}">${esc(sizeShort(sz))}${nameTag(sz)}</button>`).join('')}
       </div>
     </div>
     ${ctx.products.length ? `<ul class="grid" data-grid>${ctx.products.map((p) => productCard(ctx, p)).join('')}</ul>
@@ -570,7 +578,7 @@ export function categoryPage(ctx, cat) {
       <p class="lede">${esc(cat.description || '')}</p>
       <div class="filter-group" role="group" aria-label="Filter by size" data-filters>
         <button class="chip chip--btn" aria-pressed="true" data-filter-size="">All sizes</button>
-        ${(cat.sizes || []).map((sz) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}">${esc(sizeLabel(sz))}</button>`).join('')}
+        ${(cat.sizes || []).map((sz) => `<button class="chip chip--btn" aria-pressed="false" data-filter-size="${esc(norm(sz))}">${esc(sizeLabel(sz))}${nameTag(sz)}</button>`).join('')}
       </div>
     </div>
     <div class="cat-scale" aria-hidden="true">${(cat.sizes || []).map((sz) => sizeFigure(sz, '#34489c')).join('')}</div>
@@ -625,10 +633,12 @@ export function productPage(ctx, p) {
   const imgs = p.images || [];
   const sizeData = (p.sizes || []).map((sz) => {
     const d = parseSize(sz.size);
-    return { key: norm(sz.size), label: sizeLabel(sz.size), cm: sizeCm(sz.size), weight: sz.weight || '', w: d?.w || 0, h: d?.h || 0, cat: ctx.sizeToCat.get(norm(sz.size))?.singular || '' };
+    const catName = ctx.sizeToCat.get(norm(sz.size))?.singular || '';
+    const nm = sizeName(sz.size);
+    return { key: norm(sz.size), label: sizeLabel(sz.size), cm: sizeCm(sz.size), weight: sz.weight || '', w: d?.w || 0, h: d?.h || 0, cat: catName, name: nm, note: nm ? `${nm} ${catName ? catName.toLowerCase() + ' ' : ''}size` : '' };
   });
   const msg = (size) => `Hello ${s.firmName}, I am interested in "${p.name}"${size ? ` in size ${size}` : ''}. Please share your best quotation.`;
-  const sizeList = (p.sizes || []).map((x) => sizeShort(x.size)).join(', ');
+  const sizeList = (p.sizes || []).map((x) => sizeShort(x.size) + nameParen(x.size)).join(', ');
 
   const gallery = imgs.length
     ? `<div class="gallery" data-gallery>
@@ -653,7 +663,7 @@ export function productPage(ctx, p) {
         <h2 class="h4" id="size-h">Choose a size</h2>
         ${groups.map((g) => `<div class="size-group" role="group" aria-labelledby="size-h">
           <span class="size-group-name">${esc(g.cat.singular || g.cat.name)}</span>
-          <div class="chips">${g.sizes.map((sz) => `<button type="button" class="chip chip--btn chip--size" data-size="${esc(norm(sz.size))}" aria-pressed="${sz === first ? 'true' : 'false'}">${esc(sizeLabel(sz.size))}</button>`).join('')}</div>
+          <div class="chips">${g.sizes.map((sz) => `<button type="button" class="chip chip--btn chip--size" data-size="${esc(norm(sz.size))}" aria-pressed="${sz === first ? 'true' : 'false'}">${esc(sizeLabel(sz.size))}${nameTag(sz.size)}</button>`).join('')}</div>
         </div>`).join('')}
         <div class="size-detail">
           <div class="size-scale" aria-hidden="true">
@@ -661,19 +671,19 @@ export function productPage(ctx, p) {
             <div class="size-scale-towel" data-size-scale style="--w:${sizeData[0].w};--h:${sizeData[0].h}">${towelSwatch(p.colour, {})}</div>
           </div>
           <dl class="spec">
-            <div><dt>Size</dt><dd data-size-label>${esc(sizeData[0].label)} <span class="muted">(${esc(sizeData[0].cm)})</span></dd></div>
+            <div><dt>Size</dt><dd data-size-label>${esc(sizeData[0].label)} <span class="muted">(${esc(sizeData[0].cm)})</span>${sizeData[0].note ? `<span class="size-note">${esc(sizeData[0].note)}</span>` : ''}</dd></div>
             <div data-weight-row ${sizeData[0].weight ? '' : 'hidden'}><dt>Weight</dt><dd data-size-weight>${esc(sizeData[0].weight)}</dd></div>
             ${p.material ? `<div><dt>Material</dt><dd>${esc(p.material)}</dd></div>` : ''}
             ${p.pattern ? `<div><dt>Pattern</dt><dd>${esc(p.pattern)}</dd></div>` : ''}
             <div><dt>Country of origin</dt><dd>${esc(p.origin || 'India')}</dd></div>
             ${p.moq ? `<div><dt>Minimum order</dt><dd>${esc(p.moq)}</dd></div>` : ''}
-            <div><dt>Available sizes</dt><dd>${esc(sizeList)} in</dd></div>
+            <div><dt>Available sizes (inches)</dt><dd>${esc(sizeList)}</dd></div>
           </dl>
         </div>
       </div>` : ''}
 
       <div class="product-cta" data-cta data-msg-base="${esc(msg(''))}">
-        ${quoteButtons(ctx, msg(first ? sizeLabel(first.size) : ''))}
+        ${quoteButtons(ctx, msg(first ? sizeLabel(first.size) + nameParen(first.size) : ''))}
         <p class="muted small">Prices depend on size, weight and quantity. Send your requirement and we will quote quickly.</p>
       </div>
     </div>
@@ -760,7 +770,7 @@ export function contactPage(ctx) {
   const addr = [s.addressLine, [s.city, s.state].filter(Boolean).join(', '), s.pincode, s.country].filter(Boolean).join(', ');
   const wa = waLink(s, 'Hello');
   const isEmbed = /google\.[^/]+\/maps\/embed/.test(s.mapUrl || '');
-  const options = ctx.categories.flatMap((c) => (c.sizes || []).map((sz) => `${c.singular} ${sizeLabel(sz)}`));
+  const options = ctx.categories.flatMap((c) => (c.sizes || []).map((sz) => `${c.singular} ${sizeLabel(sz)}${nameParen(sz)}`));
   const body = `
 <section class="page-head">
   <div class="wrap">

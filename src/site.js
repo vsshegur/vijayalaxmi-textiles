@@ -70,12 +70,16 @@
       const s = sizes.find((x) => x.key === key) || sizes[0];
       if (!s) return;
       product.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.size === s.key)));
-      if (label) label.innerHTML = `${s.label} <span class="muted">(${s.cm})</span>`;
+      if (label) {
+        label.textContent = `${s.label} `;
+        const cm = document.createElement('span'); cm.className = 'muted'; cm.textContent = `(${s.cm})`; label.append(cm);
+        if (s.note) { const n = document.createElement('span'); n.className = 'size-note'; n.textContent = s.note; label.append(n); }
+      }
       if (weight) weight.textContent = s.weight;
       if (weightRow) weightRow.hidden = !s.weight;
       if (scale) { scale.style.setProperty('--w', s.w); scale.style.setProperty('--h', s.h); }
       if (cta) {
-        const msg = `${(cta.dataset.msgBase || '').replace(/\. Please share/, ` in size ${s.label}. Please share`)}`;
+        const msg = `${(cta.dataset.msgBase || '').replace(/\. Please share/, ` in size ${s.label}${s.name ? ` (${s.name})` : ''}. Please share`)}`;
         cta.querySelectorAll('[data-wa]').forEach((a) => { const u = new URL(a.href); u.searchParams.set('text', msg); a.href = u.toString(); });
         cta.querySelectorAll('[data-mail]').forEach((a) => { a.href = a.href.replace(/body=[^&]*/, 'body=' + encodeURIComponent(msg)); });
       }
