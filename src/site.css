@@ -622,3 +622,23 @@ body.theme-spa { background: #fbfcfa; line-height: 1.7; }
   .hero-photo { order: -1; }
   .hero-photo img { -webkit-mask-image: none; mask-image: none; }
 }
+
+/* Shegur's brand */
+.brand-logo { height: 2.1rem; width: auto; flex: none; }
+.brand .brand-logo + .brand-text { padding-left: 0.8rem; border-left: 1px solid var(--line); }
+.brand--light .brand-logo + .brand-text { border-left-color: rgba(255,255,255,.25); }
+.theme-mill .site-header .brand-logo + .brand-text { border-left-color: rgba(255,255,255,.25); }
+.site-footer .brand-logo { height: 1.9rem; }
+.brand-strip { background: #fff; border-bottom: 1px solid var(--line); }
+.brand-strip-inner { display: flex; align-items: center; gap: 1.5rem; padding-top: 1.4rem; padding-bottom: 1.4rem; }
+.brand-strip-logo { height: 2.6rem; width: auto; flex: none; }
+.brand-strip p { margin: 0; color: var(--thread); }
+.brand-strip strong { color: var(--indigo); font-weight: 600; }
+@media (max-width: 760px) {
+  .brand-logo { height: 1.6rem; }
+  .brand .brand-logo + .brand-text { padding-left: 0.6rem; }
+  .brand-name { font-size: 1.05rem; }
+  .brand-strip-inner { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .brand-strip-logo { height: 2rem; }
+}
+.brand-name { white-space: nowrap; }

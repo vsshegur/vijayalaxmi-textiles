@@ -164,7 +164,7 @@ function timeline(ctx) {
 
 export function layout(ctx, { title, description, path, body, jsonld = [], image, active = '', noindex = false }) {
   const s = ctx.settings;
-  const fullTitle = title ? `${title} | ${s.firmName}` : `${s.firmName} | ${s.tagline}`;
+  const fullTitle = title ? `${title} | ${s.firmName}` : `${s.firmName}${s.brandName ? ` (${s.brandName})` : ''} | ${s.tagline}`;
   const desc = description || s.seoDescription;
   const canonical = abs(ctx, path);
   const ogImage = image ? (image.startsWith('http') ? image : abs(ctx, image)) : abs(ctx, '/og-image.png');
@@ -203,7 +203,7 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).repl
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="/" aria-label="${esc(s.firmName)} home">
-      ${logoMark()}
+      ${brandLogo(ctx, ctx.design === 'mill')}
       <span class="brand-text"><span class="brand-name">${esc(s.firmName)}</span><span class="brand-sub">Terry towels since ${ctx.established}</span></span>
     </a>
     <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav"><span class="sr">Menu</span><span class="nav-toggle-bars"></span></button>
@@ -224,6 +224,15 @@ ${footer(ctx)}
 </html>`;
 }
 
+function brandLogo(ctx, light) {
+  const s = ctx.settings;
+  const src = light ? (s.brandLogoLight || s.brandLogo) : s.brandLogo;
+  if (!src) return logoMark();
+  return `<img class="brand-logo" src="${esc(src)}" alt="${esc(s.brandName || s.firmName)}" width="673" height="177">`;
+}
+
+const brandR = (ctx) => (ctx.settings.brandName ? `${ctx.settings.brandName}®` : '');
+
 export function logoMark() {
   return `<svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
     <rect x="3" y="6" width="34" height="28" rx="4" fill="#1d2a5c"/>
@@ -242,7 +251,7 @@ function footer(ctx) {
   <div class="border-band" aria-hidden="true"></div>
   <div class="wrap footer-grid">
     <div class="footer-brand">
-      <a class="brand brand--light" href="/">${logoMark()}<span class="brand-text"><span class="brand-name">${esc(s.firmName)}</span><span class="brand-sub">Terry towels since ${ctx.established}</span></span></a>
+      <a class="brand brand--light" href="/">${brandLogo(ctx, true)}<span class="brand-text"><span class="brand-name">${esc(s.firmName)}</span><span class="brand-sub">Terry towels since ${ctx.established}</span></span></a>
       <p>Manufacturers of terry bath towels, baby bath towels, hand towels, face towels and bath mats${ctx.city ? ` in ${esc(ctx.city)}` : ''}.</p>
     </div>
     <div>
@@ -265,7 +274,7 @@ function footer(ctx) {
     </div>` : ''}
   </div>
   <div class="wrap footer-base">
-    <p>© ${ctx.year} ${esc(s.firmName)}. All sizes are in inches.</p>
+    <p>© ${ctx.year} ${esc(s.firmName)}.${s.brandName ? ` ${esc(brandR(ctx))} is a registered brand of ${esc(s.firmName)}.` : ''} All sizes are in inches.</p>
   </div>
 </footer>`;
 }
@@ -287,6 +296,7 @@ function orgJsonLd(ctx) {
     image: `${ctx.siteUrl}/og-image.png`,
     foundingDate: String(ctx.established),
     slogan: s.tagline,
+    brand: s.brandName ? { '@type': 'Brand', name: s.brandName, logo: s.brandLogo ? `${ctx.siteUrl}${s.brandLogo}` : undefined } : undefined,
     knowsAbout: ['Terry towels', 'Bath towels', 'Hand towels', 'Face towels', 'Baby bath towels', 'Bath mats', 'Towel manufacturing'],
   };
   if (s.phone) o.telephone = s.phone;
@@ -421,6 +431,13 @@ export function homePage(ctx) {
 </section>`;
   };
 
+  const brandStrip = () => s.brandName ? `<section class="brand-strip" aria-label="Our brand">
+  <div class="wrap brand-strip-inner">
+    ${s.brandLogo ? `<img class="brand-strip-logo" src="${esc(s.brandLogo)}" alt="${esc(s.brandName)}" width="673" height="177" loading="lazy">` : ''}
+    <p><strong>${esc(brandR(ctx))} is the registered brand of ${esc(s.firmName)}.</strong> Ask for ${esc(s.brandName)} towels by name when you order.</p>
+  </div>
+</section>` : '';
+
   const scaleSection = () => `<section class="section section--scale" aria-labelledby="sizes-h">
   <div class="wrap">
     <div class="section-head">
@@ -497,9 +514,9 @@ export function homePage(ctx) {
 </section>` : '';
 
   const orders = {
-    loom: [heroLoom, scaleSection, featuredSection, storySection, trustSection],
-    mill: [heroMill, catTiles, featuredSection, trustSection, valuesSection],
-    spa: [heroSpa, catRolls, featuredSection, valuesSection, storySection, trustSection],
+    loom: [heroLoom, brandStrip, scaleSection, featuredSection, storySection, trustSection],
+    mill: [heroMill, brandStrip, catTiles, featuredSection, trustSection, valuesSection],
+    spa: [heroSpa, brandStrip, catRolls, featuredSection, valuesSection, storySection, trustSection],
   };
   const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + enquiryBand(ctx);
 
@@ -673,6 +690,7 @@ export function productPage(ctx, p) {
             <div><dt>Size</dt><dd data-size-label>${esc(sizeData[0].label)} <span class="muted">(${esc(sizeData[0].cm)})</span>${sizeData[0].note ? `<span class="size-note">${esc(sizeData[0].note)}</span>` : ''}</dd></div>
             <div data-weight-row ${sizeData[0].weight ? '' : 'hidden'}><dt>Weight</dt><dd data-size-weight>${esc(sizeData[0].weight)}</dd></div>
             ${p.material ? `<div><dt>Material</dt><dd>${esc(p.material)}</dd></div>` : ''}
+            ${p.brand || s.brandName ? `<div><dt>Brand</dt><dd>${esc(p.brand || brandR(ctx))}</dd></div>` : ''}
             ${p.pattern ? `<div><dt>Pattern</dt><dd>${esc(p.pattern)}</dd></div>` : ''}
             <div><dt>Country of origin</dt><dd>${esc(p.origin || 'India')}</dd></div>
             ${p.moq ? `<div><dt>Minimum order</dt><dd>${esc(p.moq)}</dd></div>` : ''}
@@ -696,7 +714,7 @@ ${enquiryBand(ctx)}`;
     '@type': 'Product',
     name: p.name,
     description: p.description || `${p.name} by ${s.firmName}. Available sizes: ${sizeList} inches.`,
-    brand: { '@type': 'Brand', name: s.firmName },
+    brand: { '@type': 'Brand', name: p.brand || s.brandName || s.firmName },
     manufacturer: { '@id': `${ctx.siteUrl}/#business` },
     category: groups.map((g) => g.cat.name).join(', '),
     url: abs(ctx, path),

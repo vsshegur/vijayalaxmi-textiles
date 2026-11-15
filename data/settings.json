@@ -3,7 +3,7 @@
   "tagline": "Terry towel manufacturer in Solapur since 1982",
   "established": 1982,
   "siteUrl": "https://vijayalaxmitextiles.com",
-  "seoDescription": "Vijayalaxmi Textiles, Solapur: manufacturer and wholesaler of terry towels since 1982. Bath towels, baby bath towels, hand towels, face towels and bath mats for wholesalers, hotels and retailers.",
+  "seoDescription": "Vijayalaxmi Textiles, Solapur: makers of Shegur's® terry towels since 1982. Bath, baby bath, hand and face towels and bath mats for wholesalers, hotels and retailers.",
   "phone": "+91 99708 36509",
   "whatsapp": "+91 99708 36509",
   "email": "shegursvijayalxmitextiles@gmail.com",
@@ -16,7 +16,7 @@
   "hours": "Mon–Sat, 10:00 am – 7:00 pm",
   "mapUrl": "",
   "flipkartUrl": "",
-  "about": "Vijayalaxmi Textiles was founded in 1982, when we set up our first grey cotton fabric plant. In the years that followed we expanded into chaddars and then terry towels, adding skills and capacity one product at a time. Today we are manufacturers and wholesalers of terry towels only: bath towels, baby bath towels, hand towels, face towels and bath mats, supplied to wholesalers, hotels and retailers.\n\nOur customers come first. Their satisfaction is our highest priority, and everything we do is shaped by what our buyers need.\n\nQuality is how we are judged. Every towel that leaves our unit carries our name, so our experienced team gives close attention to each stage of production. That care is what allows us to deliver uniform, consistent quality in every order.\n\nWe offer genuinely competitive pricing. Strong purchasing power and tight control of overheads let us keep costs low without compromising the product. We work best with clients who value personal attention, prompt and dependable deliveries, and a firm guarantee on everything we supply.\n\nWe believe in honest business and in growth built on long-lasting relationships. We measure our success by the success our customers achieve with our products.\n\nOur roots are in traditional manufacturing, but we have embraced modern channels to reach buyers. Through IndiaMART and Google Business we now serve more than 150 satisfied customers and hold a perfect 5-star rating on IndiaMART.\n\nBrowse our range and tell us what you need. We will respond quickly with our best quotation.",
+  "about": "Vijayalaxmi Textiles was founded in 1982, when we set up our first grey cotton fabric plant. In the years that followed we expanded into chaddars and then terry towels, adding skills and capacity one product at a time. Today we are manufacturers and wholesalers of terry towels only: bath towels, baby bath towels, hand towels, face towels and bath mats, supplied to wholesalers, hotels and retailers.\n\nShegur's® is our registered brand. It stands for the same promise we have kept since 1982: honest quality, uniform from batch to batch.\n\nOur customers come first. Their satisfaction is our highest priority, and everything we do is shaped by what our buyers need.\n\nQuality is how we are judged. Every towel that leaves our unit carries our name, so our experienced team gives close attention to each stage of production. That care is what allows us to deliver uniform, consistent quality in every order.\n\nWe offer genuinely competitive pricing. Strong purchasing power and tight control of overheads let us keep costs low without compromising the product. We work best with clients who value personal attention, prompt and dependable deliveries, and a firm guarantee on everything we supply.\n\nWe believe in honest business and in growth built on long-lasting relationships. We measure our success by the success our customers achieve with our products.\n\nOur roots are in traditional manufacturing, but we have embraced modern channels to reach buyers. Through IndiaMART and Google Business we now serve more than 150 satisfied customers and hold a perfect 5-star rating on IndiaMART.\n\nBrowse our range and tell us what you need. We will respond quickly with our best quotation.",
   "ratings": [
     {
       "platform": "IndiaMART",
@@ -68,5 +68,8 @@
     "China"
   ],
   "design": "loom",
-  "heroImage": "/images/hero"
+  "heroImage": "/images/hero",
+  "brandName": "Shegur's",
+  "brandLogo": "/images/shegurs-red.png",
+  "brandLogoLight": "/images/shegurs-white.png"
 }

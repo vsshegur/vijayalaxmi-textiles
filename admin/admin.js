@@ -143,6 +143,8 @@
     $('#p-delete').hidden = isNew;
     $('#p-name').value = editing.name;
     $('#p-moq').value = editing.moq;
+    $('#p-brand').value = editing.brand || '';
+    $('#p-brand').placeholder = state.settings.brandName ? `${state.settings.brandName} (default)` : 'Brand';
     $('#p-desc').value = editing.description;
     $('#p-colour').value = /^#[0-9a-f]{6}$/i.test(editing.colour) ? editing.colour : '#34489c';
     $('#p-featured').checked = !!editing.featured;
@@ -301,6 +303,7 @@
       origin: /micro/i.test(material) ? (selectValue($('#p-origin'), $('#p-origin-other')) || 'China') : 'India',
       pattern: selectValue($('#p-pattern'), $('#p-pattern-other')),
       moq: $('#p-moq').value.trim(),
+      brand: $('#p-brand').value.trim(),
       description: $('#p-desc').value.trim(),
       colour: $('#p-colour').value,
       featured: $('#p-featured').checked,
@@ -413,7 +416,7 @@
   // ---------- business details ----------
   const FIELDS = [
     ['h', 'Firm'],
-    ['firmName', 'Firm name'], ['alternateName', 'Other name buyers use'],
+    ['firmName', 'Firm name'], ['brandName', 'Registered brand name'], ['alternateName', 'Other name buyers use'],
     ['tagline', 'Short tagline'], ['businessType', 'What you do'],
     ['buyers', 'Main buyers'], ['established', 'Year established', 'number'],
     ['h', 'Contact'],

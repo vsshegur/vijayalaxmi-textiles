@@ -29,6 +29,7 @@ function cleanProducts(list) {
       pattern: str(p.pattern, 80),
       description: str(p.description, 2000),
       moq: str(p.moq, 120),
+      brand: str(p.brand, 60),
       featured: !!p.featured,
       hidden: !!p.hidden,
       colour: /^#[0-9a-f]{6}$/i.test(p.colour || '') ? p.colour : '#34489c',
