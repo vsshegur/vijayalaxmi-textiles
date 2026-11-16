@@ -92,6 +92,8 @@ function cleanCategories(list) {
       sizes,
       sizeNames,
       description: str(c.description, 600),
+      content: str(c.content, 20000),
+      faq: (Array.isArray(c.faq) ? c.faq : []).map((x) => ({ q: str(x && x.q, 200), a: str(x && x.a, 1200) })).filter((x) => x.q && x.a).slice(0, 20),
     };
   });
 }

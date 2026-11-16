@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { makeContext, homePage, towelsPage, categoryPage, productPage, aboutPage, contactPage, notFoundPage, solapurPage, terryGuidePage, sizeGuidePage, hotelPage, blogIndexPage, articlePage, visibleArticles, catalogueData } from './src/templates.mjs';
+import { makeContext, homePage, towelsPage, categoryPage, productPage, aboutPage, contactPage, notFoundPage, solapurPage, terryGuidePage, sizeGuidePage, hotelPage, blogIndexPage, articlePage, visibleArticles, catalogueData, photoList } from './src/templates.mjs';
 import { slugify } from './src/lib.mjs';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
@@ -50,21 +50,21 @@ const ctx = makeContext({ settings, categories, products, articles, cssFile, jsF
 fs.writeFileSync(path.join(out, 'catalogue.json'), JSON.stringify(catalogueData(ctx)));
 
 const pages = [];
-const write = (urlPath, html, { sitemap = true, priority = '0.6', lastmod = '' } = {}) => {
+const write = (urlPath, html, { sitemap = true, priority = '0.6', lastmod = '', images = [] } = {}) => {
   const file = urlPath.endsWith('/') ? path.join(out, urlPath, 'index.html') : path.join(out, urlPath);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
-  if (sitemap) pages.push({ urlPath, priority, lastmod });
+  if (sitemap) pages.push({ urlPath, priority, lastmod, images });
 };
 
-write('/', homePage(ctx), { priority: '1.0' });
+write('/', homePage(ctx), { priority: '1.0', images: settings.heroImage ? [`${settings.heroImage}-1400.webp`] : [] });
 write('/towels/', towelsPage(ctx), { priority: '0.9' });
 for (const c of categories) write(`/towels/${c.slug}/`, categoryPage(ctx, c), { priority: '0.8' });
 const seen = new Set();
 for (const p of products) {
   if (seen.has(p.slug)) { console.warn(`Duplicate product slug skipped: ${p.slug}`); continue; }
   seen.add(p.slug);
-  write(`/products/${p.slug}/`, productPage(ctx, p), { priority: '0.7' });
+  write(`/products/${p.slug}/`, productPage(ctx, p), { priority: '0.7', images: photoList(p).map((x) => x.src) });
 }
 write('/solapur-towels/', solapurPage(ctx), { priority: '0.9' });
 write('/terry-towels/', terryGuidePage(ctx), { priority: '0.8' });
@@ -73,7 +73,7 @@ write('/hotel-towels/', hotelPage(ctx), { priority: '0.8' });
 const posts = visibleArticles(articles);
 if (posts.length) {
   write('/blog/', blogIndexPage(ctx), { priority: '0.6' });
-  for (const a of posts) write(`/blog/${a.slug}/`, articlePage(ctx, a), { priority: '0.6', lastmod: a.updated || a.date });
+  for (const a of posts) write(`/blog/${a.slug}/`, articlePage(ctx, a), { priority: '0.6', lastmod: a.updated || a.date, images: a.cover ? [a.cover] : [] });
 }
 write('/about/', aboutPage(ctx), { priority: '0.7' });
 write('/contact/', contactPage(ctx), { priority: '0.7' });
@@ -83,8 +83,8 @@ const today = new Date().toISOString().slice(0, 10);
 const base = ctx.siteUrl;
 fs.writeFileSync(
   path.join(out, 'sitemap.xml'),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages
-    .map((p) => `  <url><loc>${base}${p.urlPath}</loc><lastmod>${/^\d{4}-\d{2}-\d{2}$/.test(p.lastmod) ? p.lastmod : today}</lastmod><priority>${p.priority}</priority></url>`)
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${pages
+    .map((p) => `  <url><loc>${base}${p.urlPath}</loc><lastmod>${/^\d{4}-\d{2}-\d{2}$/.test(p.lastmod) ? p.lastmod : today}</lastmod><priority>${p.priority}</priority>${(p.images || []).map((src) => `<image:image><image:loc>${base}${src}</image:loc></image:image>`).join('')}</url>`)
     .join('\n')}\n</urlset>\n`
 );
 fs.writeFileSync(path.join(out, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${base}/sitemap.xml\n`);

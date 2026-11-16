@@ -392,6 +392,8 @@
       <div class="field wide"><label>Sizes in inches, separated by commas</label><input data-k="sizes" value="${esc((c.sizes || []).join(', '))}" placeholder="30x60, 36x72"></div>
       <div class="field wide"><label>Size names <span class="opt">optional, one per line, e.g. 30x60 = Standard</span></label><textarea data-k="sizeNames" rows="2" placeholder="30x60 = Standard">${esc(Object.entries(c.sizeNames || {}).map(([k, v]) => `${k} = ${v}`).join('\n'))}</textarea></div>
       <div class="field wide"><label>Description for this page and Google</label><textarea data-k="description" rows="2">${esc(c.description || '')}</textarea></div>
+      <div class="field wide"><label>Page text <span class="opt">shown below the products. ## for a heading, - for a bullet, **bold**</span></label><textarea data-k="content" rows="10">${esc(c.content || '')}</textarea></div>
+      <div class="field wide"><label>Buyer questions <span class="opt">Q: on one line, A: on the next, blank line between questions</span></label><textarea data-k="faq" rows="8">${esc((c.faq || []).map((x) => `Q: ${x.q}\nA: ${x.a}`).join('\n\n'))}</textarea></div>
       <div class="wide row-actions"><button type="button" class="btn btn--danger-text" data-del-type="${i}">Delete this type</button></div>
     </div>`).join('');
   }
@@ -399,7 +401,15 @@
     const card = e.target.closest('[data-type]'); const k = e.target.dataset.k;
     if (!card || !k) return;
     const c = state.categories[+card.dataset.type];
-    if (k === 'sizeNames') {
+    if (k === 'faq') {
+      const items = [];
+      e.target.value.split(/\n\s*\n/).forEach((block) => {
+        const q = (block.match(/^\s*Q:\s*(.+)$/mi) || [])[1];
+        const a = (block.match(/^\s*A:\s*([\s\S]+)$/mi) || [])[1];
+        if (q && a) items.push({ q: q.trim(), a: a.trim().replace(/\s*\n\s*/g, ' ') });
+      });
+      c.faq = items;
+    } else if (k === 'sizeNames') {
       const names = {};
       const bad = [];
       e.target.value.split('\n').map((l) => l.trim()).filter(Boolean).forEach((line) => {
@@ -587,6 +597,7 @@
     ['mapUrl', 'Google Maps link or embed link', 'url'],
     ['h', 'Links'],
     ['siteUrl', 'Website address (your domain)', 'url'], ['indiamartUrl', 'IndiaMART enquiry link', 'url'], ['flipkartUrl', 'Flipkart store link', 'url'],
+    ['googleVerification', 'Google Search Console code (from the HTML tag method)'], ['bingVerification', 'Bing Webmaster code (optional)'],
     ['h', 'Text'],
     ['seoDescription', 'Description shown in Google results (about 150–160 characters)', 'textarea', 'wide'],
     ['about', 'Our story (About page). Leave a blank line between paragraphs.', 'textarea-lg', 'wide'],

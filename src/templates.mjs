@@ -221,6 +221,8 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:image" content="${esc(ogImage)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1d2a5c">
+${s.googleVerification ? `<meta name="google-site-verification" content="${esc(metaCode(s.googleVerification))}">` : ''}
+${s.bingVerification ? `<meta name="msvalidate.01" content="${esc(metaCode(s.bingVerification))}">` : ''}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 ${fontPreload(ctx.design)}
 <link rel="stylesheet" href="/assets/${ctx.cssFile}">
@@ -262,6 +264,9 @@ function brandLogo(ctx, light) {
 
 const brandR = (ctx) => (ctx.settings.brandName ? `${ctx.settings.brandName}®` : '');
 
+// accepts either the bare code or the whole <meta ...> tag pasted from Google or Bing
+const metaCode = (v) => (String(v).match(/content=["']([^"']+)["']/) || [])[1] || String(v).trim();
+
 export function logoMark() {
   return `<svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
     <rect x="3" y="6" width="34" height="28" rx="4" fill="#1d2a5c"/>
@@ -298,7 +303,7 @@ function footer(ctx) {
     </div>
     <div>
       <h2 class="footer-h">Towels</h2>
-      <ul>${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}<li>${catalogueButton('Download catalogue (PDF)', 'link-btn link-btn--footer')}</li></ul>
+      <ul>${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}<li>${catalogueButton('Catalogue (PDF)', 'link-btn link-btn--footer')}</li></ul>
     </div>
     <div>
       <h2 class="footer-h">Guides</h2>
@@ -576,7 +581,14 @@ export function homePage(ctx) {
     <ul class="cat-links">${GUIDES.map(([p, n, d]) => `<li><a href="${p}"><span>${esc(n)}</span><span class="cat-links-sizes">${esc(d)}</span></a></li>`).join('')}</ul>
   </div>
 </section>`;
-  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + blogSection(ctx) + '\n' + guidesSection() + '\n' + enquiryBand(ctx);
+  const homeFaq = [
+    [`Are you a towel manufacturer in ${ctx.city || 'India'}?`, `<p>Yes. ${esc(s.firmName)} has manufactured cotton textiles in ${esc(ctx.city || 'India')} since ${ctx.established} and today makes terry towels under our registered brand ${esc(s.brandName ? s.brandName + '®' : s.firmName)}.</p>`],
+    ['Which towels do you make?', `<p>${ctx.categories.map((c) => `<a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a> (${(c.sizes || []).map((sz) => esc(sizeShort(sz))).join(', ')} inches)`).join(', ')}.</p>`],
+    ['Do you sell towels wholesale?', `<p>Yes. We supply ${esc(s.buyers || 'wholesalers, hotels and retailers')}. Send the towel, size and quantity on WhatsApp for our best price.</p>`],
+    ['What is the standard bath towel size?', '<p>30 × 60 inches (76 × 152 cm). The large size is 36 × 72 inches (91 × 183 cm). See the <a href="/towel-size-guide/">towel size guide</a>.</p>'],
+    ['Do you supply towels for hotels?', '<p>Yes. We make bath, hand and face towels and bath mats, so a complete <a href="/hotel-towels/">hotel room set</a> can come from us.</p>'],
+  ];
+  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + blogSection(ctx) + '\n' + guidesSection() + '\n' + faqBlock(homeFaq) + '\n' + enquiryBand(ctx);
 
   return layout(ctx, {
     title: '',
@@ -584,7 +596,7 @@ export function homePage(ctx) {
     path: '/',
     image: s.heroImage ? `${s.heroImage}-1400.webp` : undefined,
     body,
-    jsonld: [orgJsonLd(ctx), { '@context': 'https://schema.org', '@type': 'WebSite', name: s.firmName, alternateName: [s.brandName, s.alternateName].filter(Boolean), url: `${ctx.siteUrl}/` }],
+    jsonld: [faqLd(homeFaq), orgJsonLd(ctx), { '@context': 'https://schema.org', '@type': 'WebSite', name: s.firmName, alternateName: [s.brandName, s.alternateName].filter(Boolean), url: `${ctx.siteUrl}/` }],
   });
 }
 
@@ -677,6 +689,7 @@ ${enquiryBand(ctx)}`;
     body,
     jsonld: [
       breadcrumbs(ctx, crumbs),
+      ...(catFaq(cat).length ? [faqLd(catFaq(cat))] : []),
       {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
@@ -687,8 +700,18 @@ ${enquiryBand(ctx)}`;
   });
 }
 
+function catFaq(cat) {
+  return (cat.faq || []).filter((x) => x && x.q && x.a).map((x) => [x.q, `<p>${esc(x.a)}</p>`]);
+}
+
 function catAbout(ctx, cat) {
   const s = ctx.settings;
+  if (cat.content) {
+    return `<section class="section section--tight">
+  <div class="wrap narrow prose prose--guide">${formatArticle(cat.content)}</div>
+</section>
+${faqBlock(catFaq(cat))}`;
+  }
   const sizes = (cat.sizes || []).map((sz) => `${sizeLabel(sz)}${sizeName(sz) ? ` (${sizeName(sz).toLowerCase()})` : ''}`).join(' and ');
   const lower = cat.name.toLowerCase();
   return `<section class="section section--tight">
@@ -794,6 +817,7 @@ export function productPage(ctx, p) {
   </div>
 </section>
 ${related(ctx, p, primary)}
+${guideLinks(ctx, '')}
 ${enquiryBand(ctx)}`;
 
   const productLd = {
@@ -815,10 +839,10 @@ ${enquiryBand(ctx)}`;
   if (props.length) productLd.additionalProperty = props.map(([name, value]) => ({ '@type': 'PropertyValue', name, value }));
   if (sizeList) productLd.size = `${sizeList} in`;
 
-  const title = primary?.singular && !p.name.toLowerCase().includes(primary.singular.toLowerCase()) ? `${p.name}, ${primary.singular.toLowerCase()}` : p.name;
+  const title = `${p.name}${primary?.singular ? ` | ${primary.singular} manufacturer in ${ctx.city || 'India'}` : ''}`;
   return layout(ctx, {
     title,
-    description: `${p.name} in ${sizeList} inch sizes${p.material ? `, ${p.material}` : ''}. ${p.description || ''}`.trim().slice(0, 158),
+    description: `${p.name}: ${(primary?.singular || 'terry towel').toLowerCase()} in ${sizeList} inch sizes${p.material ? `, ${p.material}` : ''}. Made in ${ctx.city || 'India'} by ${s.firmName}${s.brandName ? ` (${s.brandName})` : ''}. Wholesale prices on WhatsApp.`.slice(0, 160),
     path,
     active: 'towels',
     image: mainPhoto,

@@ -775,3 +775,4 @@ body.theme-spa { background: #fbfcfa; line-height: 1.7; }
 .link-btn--footer:hover { color: var(--turmeric); }
 .contact-cat { margin-top: 1.25rem; }
 button[data-catalogue]:disabled { opacity: .6; cursor: progress; }
+.link-btn--footer { white-space: nowrap; }
