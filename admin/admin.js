@@ -32,7 +32,7 @@
   function saveDraft() {
     try {
       const pending = new Set(uploads.keys());
-      const products = state.products.map((p) => ({ ...p, images: p.images.filter((i) => !pending.has(i)) }));
+      const products = state.products.map((p) => ({ ...p, images: p.images.filter((i) => !pending.has(i.src)) }));
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), settings: state.settings, categories: state.categories, products }));
     } catch (_) {}
   }
@@ -77,8 +77,12 @@
       clearDraft(); renderAll(); setDirty(false);
     }
   }
+  // photos are { src, sizes: [] }; empty sizes = all sizes
+  const toPhoto = (x) => (typeof x === 'string' ? { src: x, sizes: [] } : { src: x.src, sizes: [...(x.sizes || [])] });
   function fixProduct(p) {
-    return { id: p.id || `p${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: '', slug: '', material: '', origin: 'India', pattern: '', description: '', moq: '', featured: false, hidden: false, colour: '#34489c', images: [], sizes: [], ...p };
+    const out = { id: p.id || `p${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: '', slug: '', material: '', origin: 'India', pattern: '', description: '', moq: '', featured: false, hidden: false, colour: '#34489c', images: [], sizes: [], ...p };
+    out.images = (out.images || []).map(toPhoto).filter((x) => x.src);
+    return out;
   }
   const imgUrl = (path) => uploads.get(path)?.url || previews.get(path) || path;
   const sizeCat = () => {
@@ -102,7 +106,7 @@
       return;
     }
     list.innerHTML = items.map((p) => {
-      const img = p.images[0];
+      const img = p.images[0]?.src;
       const types = [...new Set(p.sizes.map((s) => m.get(s.size)?.name || 'Other size'))].join(', ');
       return `<li class="pitem${p.hidden ? ' is-hidden' : ''}">
         ${img ? `<img class="pthumb" src="${esc(imgUrl(img))}" alt="">` : `<span class="pthumb" style="--c:${esc(p.colour)}"></span>`}
@@ -203,6 +207,8 @@
     const w = $(`[data-weight="${CSS.escape(cb.dataset.size)}"]`, $('#p-sizes'));
     w.disabled = !cb.checked;
     if (cb.checked) w.focus();
+    collectSizes();
+    renderPhotos();
   });
   $('#p-add-size').addEventListener('click', () => {
     const input = $('#p-custom-size');
@@ -213,6 +219,7 @@
     if (!editing.sizes.some((x) => x.size === s)) editing.sizes.push({ size: s, weight: '' });
     input.value = '';
     renderSizes();
+    renderPhotos();
   });
   $('#p-custom-size').addEventListener('input', (e) => e.target.setCustomValidity(''));
   function collectSizes() {
@@ -223,18 +230,49 @@
   }
 
   // photos
+  const sizeLabelShort = (s) => s.replace('x', '×');
+  function renderPhotoFor() {
+    const sel = $('#p-photo-for');
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">All sizes</option>` + editing.sizes.map((s) => `<option value="${esc(s.size)}">${esc(sizeLabelShort(s.size))} only</option>`).join('');
+    if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  }
   function renderPhotos() {
     const ul = $('#p-photos');
-    ul.innerHTML = editing.images.map((src, i) => `<li>
-      <img src="${esc(imgUrl(src))}" alt="Photo ${i + 1}">
-      ${i === 0 ? '<span class="main-tag">Main</span>' : ''}
+    const ticked = editing.sizes.map((s) => s.size);
+    // drop sizes that are no longer ticked
+    editing.images.forEach((ph) => { ph.sizes = ph.sizes.filter((s) => ticked.includes(s)); });
+    ul.innerHTML = editing.images.map((ph, i) => {
+      const all = !ph.sizes.length;
+      return `<li class="photo">
+      <div class="photo-img"><img src="${esc(imgUrl(ph.src))}" alt="Photo ${i + 1}">${i === 0 ? '<span class="main-tag">Main</span>' : ''}</div>
       <div class="photo-tools">
         <button type="button" data-move="${i}" data-dir="-1" aria-label="Move photo ${i + 1} left"${i === 0 ? ' disabled' : ''}>◀</button>
         <button type="button" data-remove="${i}" aria-label="Remove photo ${i + 1}">✕</button>
         <button type="button" data-move="${i}" data-dir="1" aria-label="Move photo ${i + 1} right"${i === editing.images.length - 1 ? ' disabled' : ''}>▶</button>
       </div>
-    </li>`).join('');
+      <fieldset class="photo-sizes">
+        <legend>Shows for</legend>
+        <label><input type="checkbox" data-photo="${i}" data-all${all ? ' checked' : ''}> All sizes</label>
+        ${ticked.map((s) => `<label><input type="checkbox" data-photo="${i}" data-psize="${esc(s)}"${!all && ph.sizes.includes(s) ? ' checked' : ''}${all ? ' disabled' : ''}> ${esc(sizeLabelShort(s))}</label>`).join('')}
+      </fieldset>
+    </li>`;
+    }).join('');
+    renderPhotoFor();
   }
+  $('#p-photos').addEventListener('change', (e) => {
+    const box = e.target.closest('[data-photo]');
+    if (!box) return;
+    const ph = editing.images[+box.dataset.photo];
+    if (box.hasAttribute('data-all')) {
+      // unticking "All sizes" starts with the first size ticked, so the photo always shows somewhere
+      ph.sizes = box.checked ? [] : editing.sizes.slice(0, 1).map((s) => s.size);
+    } else {
+      const s = box.dataset.psize;
+      ph.sizes = box.checked ? [...new Set([...ph.sizes, s])] : ph.sizes.filter((x) => x !== s);
+    }
+    renderPhotos();
+  });
   $('#p-photos').addEventListener('click', (e) => {
     const mv = e.target.closest('[data-move]');
     const rm = e.target.closest('[data-remove]');
@@ -256,7 +294,8 @@
         const path = `/images/products/${name}`;
         const data = await toBase64(blob);
         uploads.set(path, { data, url: URL.createObjectURL(blob) });
-        editing.images.push(path);
+        const forSize = $('#p-photo-for').value;
+        editing.images.push({ src: path, sizes: forSize ? [forSize] : [] });
         renderPhotos();
       } catch (err) {
         alert(`Could not add ${f.name}. Use a JPG, PNG or WebP photo.`);
@@ -296,6 +335,8 @@
     $('[data-error="sizes"]').hidden = editing.sizes.length > 0;
     if (!name) { $('#p-name').focus(); return; }
     if (!editing.sizes.length) { $('#p-sizes input')?.focus(); return; }
+    const ticked = editing.sizes.map((s) => s.size);
+    editing.images.forEach((ph) => { ph.sizes = ph.sizes.filter((s) => ticked.includes(s)); });
     const material = selectValue($('#p-material'), $('#p-material-other'));
     Object.assign(editing, {
       name,
@@ -488,7 +529,7 @@
     publishBtn.disabled = true;
     statusEl.className = 'status';
     statusEl.textContent = 'Publishing…';
-    const referenced = new Set(state.products.flatMap((p) => p.images));
+    const referenced = new Set(state.products.flatMap((p) => p.images.map((x) => x.src)));
     const up = [...uploads].filter(([p]) => referenced.has(p)).map(([path, u]) => ({ path, data: u.data }));
     try {
       const res = await fetch('/api/publish', {

@@ -64,10 +64,26 @@ function towelSwatch(colour, { label = '', cls = '' } = {}) {
   return `<div class="terry ${cls}" style="--c:${esc(c)}" role="img" aria-label="${esc(label)}"><span class="terry-band"></span><span class="terry-band terry-band--low"></span></div>`;
 }
 
-function productVisual(p, { large = false } = {}) {
-  const img = (p.images || [])[0];
+// Photos are stored as [{ src, sizes: [] }]. Empty sizes means the photo is for all sizes.
+// Older data may hold plain path strings; those count as "all sizes".
+export function photoList(p) {
+  return (p.images || [])
+    .map((x) => (typeof x === 'string' ? { src: x, sizes: [] } : { src: x && x.src, sizes: ((x && x.sizes) || []).map(norm) }))
+    .filter((x) => x.src);
+}
+function photosFor(p, size) {
+  const all = photoList(p);
+  if (!size) return all;
+  const k = norm(size);
+  const match = all.filter((x) => !x.sizes.length || x.sizes.includes(k));
+  return match.length ? match : all;
+}
+
+function productVisual(p, { large = false, size = '' } = {}) {
+  const img = photosFor(p, size)[0]?.src;
   if (img) {
-    return `<img src="${esc(img)}" alt="${esc(p.name)}, ${esc((p.sizes || []).map((x) => sizeShort(x.size)).join(', '))} inch terry towel" loading="${large ? 'eager' : 'lazy'}" decoding="async" width="800" height="1000">`;
+    const label = size ? sizeShort(size) : (p.sizes || []).map((x) => sizeShort(x.size)).join(', ');
+    return `<img src="${esc(img)}" alt="${esc(p.name)}, ${esc(label)} inch terry towel" loading="${large ? 'eager' : 'lazy'}" decoding="async" width="800" height="1000">`;
   }
   return towelSwatch(p.colour, { label: p.name, cls: 'terry--fill' });
 }
@@ -122,7 +138,7 @@ function productCard(ctx, p, { cat } = {}) {
   const sizeKeys = (p.sizes || []).map((s) => norm(s.size)).join(' ');
   return `<li class="card" data-cats="${esc(catSlugs)}" data-sizes="${esc(sizeKeys)}">
     <a class="card-link" href="${esc(url)}">
-      <div class="card-visual">${productVisual(p)}</div>
+      <div class="card-visual">${productVisual(p, { size: first })}</div>
       <h3 class="card-title">${esc(p.name)}</h3>
       ${meta ? `<p class="card-meta">${esc(meta)}</p>` : ''}
     </a>
@@ -682,7 +698,8 @@ export function productPage(ctx, p) {
   if (primary?.slug) crumbs.push([primary.name, `/towels/${primary.slug}/`]);
   crumbs.push([p.name, path]);
   const first = (p.sizes || [])[0];
-  const imgs = p.images || [];
+  const photos = photoList(p);
+  const firstPhotos = photosFor(p, first?.size);
   const sizeData = (p.sizes || []).map((sz) => {
     const d = parseSize(sz.size);
     const catName = ctx.sizeToCat.get(norm(sz.size))?.singular || '';
@@ -692,10 +709,11 @@ export function productPage(ctx, p) {
   const msg = (size) => `Hello ${s.firmName}, I am interested in "${p.name}"${size ? ` in size ${size}` : ''}. Please share your best quotation.`;
   const sizeList = (p.sizes || []).map((x) => sizeShort(x.size) + nameParen(x.size)).join(', ');
 
-  const gallery = imgs.length
+  const mainPhoto = firstPhotos[0]?.src;
+  const gallery = photos.length
     ? `<div class="gallery" data-gallery>
-        <div class="gallery-main"><img src="${esc(imgs[0])}" alt="${esc(p.name)} by ${esc(s.brandName || s.firmName)}, ${esc(sizeList)} inches" width="1000" height="1250" data-gallery-main></div>
-        ${imgs.length > 1 ? `<ul class="gallery-thumbs">${imgs.map((src, i) => `<li><button type="button" data-gallery-thumb="${esc(src)}" aria-label="Show photo ${i + 1}"${i === 0 ? ' aria-current="true"' : ''}><img src="${esc(src)}" alt="" loading="lazy" width="120" height="150"></button></li>`).join('')}</ul>` : ''}
+        <div class="gallery-main"><img src="${esc(mainPhoto)}" alt="${esc(p.name)} by ${esc(s.brandName || s.firmName)}, ${esc(sizeList)} inches" width="1000" height="1250" data-gallery-main><p class="gallery-note" data-gallery-note hidden>Photo shows another size</p></div>
+        ${photos.length > 1 ? `<ul class="gallery-thumbs" data-gallery-thumbs${firstPhotos.length < 2 ? ' hidden' : ''}>${photos.map((ph, i) => `<li data-photo-sizes="${esc(ph.sizes.join(' '))}"${firstPhotos.some((x) => x.src === ph.src) ? '' : ' hidden'}><button type="button" data-gallery-thumb="${esc(ph.src)}" aria-label="Show photo ${i + 1}"${ph.src === mainPhoto ? ' aria-current="true"' : ''}><img src="${esc(ph.src)}" alt="" loading="lazy" width="120" height="150"></button></li>`).join('')}</ul>` : ''}
       </div>`
     : `<div class="gallery"><div class="gallery-main gallery-main--swatch">${towelSwatch(p.colour, { label: p.name, cls: 'terry--fill' })}<p class="gallery-note">Photos coming soon</p></div></div>`;
 
@@ -755,7 +773,7 @@ ${enquiryBand(ctx)}`;
     category: groups.map((g) => g.cat.name).join(', '),
     url: abs(ctx, path),
   };
-  if (imgs.length) productLd.image = imgs.map((i) => abs(ctx, i));
+  if (photos.length) productLd.image = photos.map((ph) => abs(ctx, ph.src));
   if (p.material) productLd.material = p.material;
   if (p.pattern) productLd.pattern = p.pattern;
   productLd.countryOfOrigin = { '@type': 'Country', name: p.origin || 'India' };
@@ -767,7 +785,7 @@ ${enquiryBand(ctx)}`;
     description: `${p.name} in ${sizeList} inch sizes${p.material ? `, ${p.material}` : ''}. ${p.description || ''}`.trim().slice(0, 158),
     path,
     active: 'towels',
-    image: imgs[0],
+    image: mainPhoto,
     body,
     jsonld: [productLd, breadcrumbs(ctx, crumbs)],
   });

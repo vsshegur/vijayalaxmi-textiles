@@ -708,3 +708,5 @@ body.theme-spa { background: #fbfcfa; line-height: 1.7; }
 @media (max-width: 1000px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .footer-grid { grid-template-columns: 1fr; } }
 .btn--wa { white-space: nowrap; }
+
+.gallery-thumbs li[hidden], .gallery-thumbs[hidden], .gallery-note[hidden] { display: none; }

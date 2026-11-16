@@ -138,9 +138,13 @@
 
       <fieldset class="field">
         <legend>Photos</legend>
-        <p class="hint">The first photo is the main one. Photos are resized automatically.</p>
+        <p class="hint">Tick the sizes each photo shows. A photo can be for all sizes, one size, or several. When a buyer picks a size, the site shows that size's photos. The first photo is the main one.</p>
         <ul id="p-photos" class="photos"></ul>
-        <label class="btn btn--small file-btn">Add photos<input type="file" id="p-file" accept="image/*" multiple hidden></label>
+        <div class="inline photo-add">
+          <label for="p-photo-for" class="photo-for-label">New photos are for</label>
+          <select id="p-photo-for"></select>
+          <label class="btn btn--small file-btn">Add photos<input type="file" id="p-file" accept="image/*" multiple hidden></label>
+        </div>
       </fieldset>
 
       <div class="two">

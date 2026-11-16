@@ -19,7 +19,12 @@ function cleanProducts(list) {
     const sizes = (Array.isArray(p.sizes) ? p.sizes : [])
       .map((s) => ({ size: str(s.size, 20).toLowerCase().replace(/\s+/g, '').replace('×', 'x'), weight: str(s.weight, 60) }))
       .filter((s) => /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(s.size));
-    const images = (Array.isArray(p.images) ? p.images : []).map((x) => str(x, 200)).filter((x) => IMG_RE.test(x)).slice(0, 12);
+    const sizeKeys = new Set(sizes.map((s) => s.size));
+    const images = (Array.isArray(p.images) ? p.images : [])
+      .map((x) => (typeof x === 'string' ? { src: x, sizes: [] } : { src: str(x && x.src, 200), sizes: Array.isArray(x && x.sizes) ? x.sizes : [] }))
+      .map((x) => ({ src: str(x.src, 200), sizes: [...new Set(x.sizes.map((s) => str(s, 20).toLowerCase().replace(/\s+/g, '').replace('×', 'x')))].filter((s) => sizeKeys.has(s)) }))
+      .filter((x) => IMG_RE.test(x.src))
+      .slice(0, 24);
     return {
       id: str(p.id, 40) || `p${Date.now()}${i}`,
       slug,
@@ -106,7 +111,7 @@ export async function onRequestPost({ request, env }) {
     return json({ error: e.message }, 400);
   }
 
-  const referenced = new Set(products.flatMap((p) => p.images));
+  const referenced = new Set(products.flatMap((p) => p.images.map((x) => x.src)));
   const uploads = (Array.isArray(body.uploads) ? body.uploads : []).filter((u) => IMG_RE.test(u.path || '') && referenced.has(u.path));
   for (const u of uploads) {
     if (typeof u.data !== 'string' || u.data.length * 0.75 > MAX_IMG_BYTES) return json({ error: `Photo ${u.path} is too large. Use photos under 6 MB.` }, 400);

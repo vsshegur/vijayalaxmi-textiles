@@ -66,6 +66,25 @@
     const weightRow = product.querySelector('[data-weight-row]');
     const scale = product.querySelector('[data-size-scale]');
     const cta = product.querySelector('[data-cta]');
+    // show the photos that belong to the chosen size
+    const mainImg = document.querySelector('[data-gallery-main]');
+    const thumbsList = document.querySelector('[data-gallery-thumbs]');
+    const note = document.querySelector('[data-gallery-note]');
+    const showPhotosFor = (key) => {
+      if (!mainImg || !thumbsList) return;
+      const items = [...thumbsList.querySelectorAll('[data-photo-sizes]')];
+      let match = items.filter((li) => !li.dataset.photoSizes || li.dataset.photoSizes.split(' ').includes(key));
+      const fallback = match.length === 0;
+      if (fallback) match = items;
+      items.forEach((li) => { li.hidden = !match.includes(li); });
+      thumbsList.hidden = match.length < 2;
+      const firstBtn = match[0] && match[0].querySelector('[data-gallery-thumb]');
+      if (firstBtn) {
+        mainImg.src = firstBtn.dataset.galleryThumb;
+        items.forEach((li) => { const b = li.querySelector('[data-gallery-thumb]'); b.setAttribute('aria-current', String(b === firstBtn)); });
+      }
+      if (note) note.hidden = !fallback;
+    };
     const select = (key, push) => {
       const s = sizes.find((x) => x.key === key) || sizes[0];
       if (!s) return;
@@ -78,6 +97,7 @@
       if (weight) weight.textContent = s.weight;
       if (weightRow) weightRow.hidden = !s.weight;
       if (scale) { scale.style.setProperty('--w', s.w); scale.style.setProperty('--h', s.h); }
+      showPhotosFor(s.key);
       if (cta) {
         const msg = `${(cta.dataset.msgBase || '').replace(/\. Please share/, ` in size ${s.label}${s.name ? ` (${s.name})` : ''}. Please share`)}`;
         cta.querySelectorAll('[data-wa]').forEach((a) => { const u = new URL(a.href); u.searchParams.set('text', msg); a.href = u.toString(); });
