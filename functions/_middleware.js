@@ -18,8 +18,16 @@ function isProtected(pathname) {
   return pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/api/');
 }
 
+// Google Search Console verification files, served at their exact address
+// (Cloudflare would otherwise redirect *.html addresses, which can fail verification).
+const VERIFY_FILES = ['google0ff078204d218dc3.html'];
+
 export async function onRequest({ request, env, next }) {
   const url = new URL(request.url);
+  const file = url.pathname.slice(1);
+  if (VERIFY_FILES.includes(file)) {
+    return new Response(`google-site-verification: ${file}`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
   if (!isProtected(url.pathname)) return next();
 
   if (!env.ADMIN_USER || !env.ADMIN_PASSWORD) {
