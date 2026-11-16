@@ -1,13 +1,42 @@
 [
   {
+    "id": "p1794816797349rfr6",
+    "slug": "classic",
+    "name": "CLASSIC",
+    "material": "Cotton",
+    "origin": "India",
+    "pattern": "",
+    "description": "CLASSIC TOWEL",
+    "moq": "",
+    "brand": "",
+    "featured": true,
+    "hidden": false,
+    "colour": "#34489c",
+    "images": [
+      {
+        "src": "/images/products/classic-bkz1bl.webp",
+        "sizes": []
+      }
+    ],
+    "sizes": [
+      {
+        "size": "30x60",
+        "weight": "400Grams"
+      }
+    ]
+  },
+  {
     "id": "p1",
     "slug": "classic-plain-terry-towel",
     "name": "Classic Plain Terry Towel",
     "material": "100% Cotton",
+    "origin": "India",
     "pattern": "Plain",
     "description": "A dependable plain-dyed terry towel with a soft, absorbent loop pile and a neat woven border. Sample product: edit or remove it in the admin panel.",
     "moq": "",
+    "brand": "",
     "featured": true,
+    "hidden": false,
     "colour": "#3d5a9e",
     "images": [],
     "sizes": [
@@ -27,18 +56,20 @@
         "size": "12x12",
         "weight": ""
       }
-    ],
-    "origin": "India"
+    ]
   },
   {
     "id": "p2",
     "slug": "dobby-border-bath-towel",
     "name": "Dobby Border Bath Towel",
     "material": "100% Cotton",
+    "origin": "India",
     "pattern": "Dobby border",
     "description": "Terry bath towel finished with a woven dobby border. Sample product: edit or remove it in the admin panel.",
     "moq": "",
+    "brand": "",
     "featured": true,
+    "hidden": false,
     "colour": "#b5473a",
     "images": [],
     "sizes": [
@@ -46,18 +77,20 @@
         "size": "30x60",
         "weight": ""
       }
-    ],
-    "origin": "India"
+    ]
   },
   {
     "id": "p3",
     "slug": "striped-baby-bath-towel",
     "name": "Striped Baby Bath Towel",
     "material": "100% Cotton",
+    "origin": "India",
     "pattern": "Striped",
     "description": "Light, soft striped terry towel sized for babies. Sample product: edit or remove it in the admin panel.",
     "moq": "",
+    "brand": "",
     "featured": true,
+    "hidden": false,
     "colour": "#d9a21b",
     "images": [],
     "sizes": [
@@ -69,18 +102,20 @@
         "size": "20x40",
         "weight": ""
       }
-    ],
-    "origin": "India"
+    ]
   },
   {
     "id": "p4",
     "slug": "terry-bath-mat",
     "name": "Terry Bath Mat",
     "material": "100% Cotton",
+    "origin": "India",
     "pattern": "Plain",
     "description": "Heavy terry bath mat with a dense pile. Sample product: edit or remove it in the admin panel.",
     "moq": "",
+    "brand": "",
     "featured": false,
+    "hidden": false,
     "colour": "#2f7a6b",
     "images": [],
     "sizes": [
@@ -88,7 +123,6 @@
         "size": "20x30",
         "weight": ""
       }
-    ],
-    "origin": "India"
+    ]
   }
 ]

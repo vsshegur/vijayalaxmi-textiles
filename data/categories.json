@@ -7,11 +7,11 @@
       "30x60",
       "36x72"
     ],
-    "description": "Full-size terry bath towels for homes, hotels and gifting, made in 30 × 60 and 36 × 72 inch sizes.",
     "sizeNames": {
       "30x60": "Standard",
       "36x72": "Large"
-    }
+    },
+    "description": "Full-size terry bath towels for homes, hotels and gifting, made in 30 × 60 and 36 × 72 inch sizes."
   },
   {
     "slug": "baby-bath-towels",
@@ -21,8 +21,8 @@
       "24x48",
       "20x40"
     ],
-    "description": "Soft, compact terry towels sized for babies and children, in 24 × 48 and 20 × 40 inch sizes.",
-    "sizeNames": {}
+    "sizeNames": {},
+    "description": "Soft, compact terry towels sized for babies and children, in 24 × 48 and 20 × 40 inch sizes."
   },
   {
     "slug": "hand-towels",
@@ -32,8 +32,8 @@
       "16x24",
       "14x21"
     ],
-    "description": "Everyday terry hand towels for washrooms, kitchens, salons and hospitality, in 16 × 24 and 14 × 21 inch sizes.",
-    "sizeNames": {}
+    "sizeNames": {},
+    "description": "Everyday terry hand towels for washrooms, kitchens, salons and hospitality, in 16 × 24 and 14 × 21 inch sizes."
   },
   {
     "slug": "face-towels",
@@ -43,8 +43,8 @@
       "12x18",
       "12x12"
     ],
-    "description": "Small terry face towels and napkins, in 12 × 18 and 12 × 12 inch sizes.",
-    "sizeNames": {}
+    "sizeNames": {},
+    "description": "Small terry face towels and napkins, in 12 × 18 and 12 × 12 inch sizes."
   },
   {
     "slug": "bath-mats",
@@ -53,7 +53,7 @@
     "sizes": [
       "20x30"
     ],
-    "description": "Dense, absorbent terry bath mats in the standard 20 × 30 inch size.",
-    "sizeNames": {}
+    "sizeNames": {},
+    "description": "Dense, absorbent terry bath mats in the standard 20 × 30 inch size."
   }
 ]
