@@ -159,6 +159,10 @@ export async function onRequestPost({ request, env }) {
   try {
     const ref = await gh(cfg, `/git/ref/heads/${encodeURIComponent(cfg.branch)}`);
     const headSha = ref.object.sha;
+    // stop if the site changed since this admin page loaded its data, so newer changes are never overwritten
+    if (!body.version || body.version !== headSha) {
+      return json({ error: 'The website was updated after you opened the admin panel (from another tab, another device, or a site update). To avoid overwriting those changes, reload this page, then make your edits again and publish.', stale: true }, 409);
+    }
     const head = await gh(cfg, `/git/commits/${headSha}`);
     const tree = await gh(cfg, `/git/trees/${head.tree.sha}?recursive=1`);
     const existing = new Set(tree.tree.filter((t) => t.type === 'blob' && IMG_DIRS.some((d) => t.path.startsWith(d))).map((t) => t.path));
@@ -187,7 +191,7 @@ export async function onRequestPost({ request, env }) {
     const commit = await gh(cfg, '/git/commits', { method: 'POST', body: JSON.stringify({ message, tree: newTree.sha, parents: [headSha] }) });
     await gh(cfg, `/git/refs/heads/${encodeURIComponent(cfg.branch)}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
 
-    return json({ ok: true, commit: commit.sha, uploaded: uploads.length, removed, products: products.length });
+    return json({ ok: true, version: commit.sha, commit: commit.sha, uploaded: uploads.length, removed, products: products.length });
   } catch (e) {
     const hint = e.status === 401 || e.status === 403
       ? 'GitHub refused the change. Check that GITHUB_TOKEN is valid and has Contents: read and write on this repository.'

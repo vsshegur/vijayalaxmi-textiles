@@ -34,7 +34,7 @@
       const pending = new Set(uploads.keys());
       const products = state.products.map((p) => ({ ...p, images: p.images.filter((i) => !pending.has(i.src)) }));
       const articles = state.articles.map((a) => ({ ...a, cover: pending.has(a.cover) ? '' : a.cover }));
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), settings: state.settings, categories: state.categories, products, articles }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), version: state.version, settings: state.settings, categories: state.categories, products, articles }));
     } catch (_) {}
   }
   function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (_) {} }
@@ -62,6 +62,7 @@
       return;
     }
     state.connected = !!data.connected;
+    state.version = data.version || '';
     state.settings = data.settings || {};
     state.categories = data.categories || [];
     state.products = (data.products || []).map(fixProduct);
@@ -71,7 +72,11 @@
       showNotice(`<strong>Publishing is not connected yet.</strong> You can look around, but changes cannot be published until <code>GITHUB_TOKEN</code> and <code>GITHUB_REPO</code> are added in Cloudflare Pages settings. ${data.error ? esc(data.error) : ''}`);
     }
 
-    const draft = readDraft();
+    let draft = readDraft();
+    if (draft && state.version && draft.version !== state.version) {
+      showNotice('Some unpublished changes saved on this device were made on an older version of the site, so they were not restored. Please make those edits again.');
+      clearDraft(); draft = null;
+    }
     if (draft && draft.products && confirm('You have unpublished changes saved on this device from before. Restore them?')) {
       state.settings = draft.settings; state.categories = draft.categories; state.products = draft.products.map(fixProduct);
       if (draft.articles) state.articles = draft.articles;
@@ -664,10 +669,19 @@
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
-        body: JSON.stringify({ settings: state.settings, categories: state.categories, products: state.products, articles: state.articles, uploads: up }),
+        body: JSON.stringify({ version: state.version, settings: state.settings, categories: state.categories, products: state.products, articles: state.articles, uploads: up }),
       });
       const out = await res.json().catch(() => ({}));
+      if (res.status === 409 && out.stale) {
+        clearDraft();
+        state.dirty = false;
+        statusEl.className = 'status';
+        statusEl.textContent = '';
+        showNotice(`<strong>Not published.</strong> ${esc(out.error)} <button type="button" class="btn btn--small" onclick="location.reload()">Reload now</button>`, 'error');
+        return;
+      }
       if (!res.ok) throw new Error(out.error || `Publishing failed (error ${res.status}).`);
+      if (out.version) state.version = out.version;
       for (const [p, u] of uploads) previews.set(p, u.url);
       uploads.clear();
       clearDraft();

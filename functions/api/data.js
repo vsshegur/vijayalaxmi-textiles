@@ -1,18 +1,21 @@
-import { repoConfig, readJsonFile, json } from '../../lib/github.js';
+import { repoConfig, readJsonFile, json, gh } from '../../lib/github.js';
 
 // Returns the latest site data. Reads from GitHub when connected so freshly
 // published changes show even before the new build finishes.
 export async function onRequestGet({ env, request }) {
-  const cfg = repoConfig(env);
+  let cfg = repoConfig(env);
   if (cfg) {
     try {
+      const ref = await gh(cfg, `/git/ref/heads/${encodeURIComponent(cfg.branch)}`);
+      const version = ref.object.sha;
+      cfg = { ...cfg, branch: version };
       const [settings, categories, products, articles] = await Promise.all([
         readJsonFile(cfg, 'data/settings.json'),
         readJsonFile(cfg, 'data/categories.json'),
         readJsonFile(cfg, 'data/products.json'),
         readJsonFile(cfg, 'data/articles.json').catch(() => []),
       ]);
-      return json({ connected: true, settings, categories, products, articles });
+      return json({ connected: true, version, settings, categories, products, articles });
     } catch (e) {
       return json({ connected: false, error: `Could not read from GitHub. Check GITHUB_TOKEN and GITHUB_REPO. ${e.message}` }, 502);
     }
