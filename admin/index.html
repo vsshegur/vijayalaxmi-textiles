@@ -23,7 +23,8 @@
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" aria-selected="true" data-tab="products">Products</button>
     <button role="tab" aria-selected="false" data-tab="types">Towel types &amp; sizes</button>
-    <button role="tab" aria-selected="false" data-tab="ratings">Ratings</button>
+    <button role="tab" aria-selected="false" data-tab="articles">Articles</button>
+    <button role="tab" aria-selected="false" data-tab="ratings">Ratings &amp; reviews</button>
     <button role="tab" aria-selected="false" data-tab="business">Business details</button>
     <button role="tab" aria-selected="false" data-tab="design">Website design</button>
   </nav>
@@ -55,6 +56,17 @@
     <div id="type-list" class="stack"></div>
   </section>
 
+  <section data-panel="articles" hidden>
+    <div class="panel-head">
+      <div>
+        <h1>Articles</h1>
+        <p class="muted">Short articles help Google find your site. Leave a blank line between paragraphs. Start a line with ## for a heading, - for a bullet point, and wrap words in **two stars** for bold.</p>
+      </div>
+      <button class="btn btn--primary" id="add-article">Add article</button>
+    </div>
+    <div id="article-list" class="stack"></div>
+  </section>
+
   <section data-panel="ratings" hidden>
     <div class="panel-head">
       <div>
@@ -64,6 +76,15 @@
       <button class="btn" id="add-rating">Add platform</button>
     </div>
     <div id="rating-list" class="stack"></div>
+
+    <div class="panel-head panel-head--sub">
+      <div>
+        <h2>Buyer reviews</h2>
+        <p class="muted">Copy real reviews from IndiaMART, Google or Justdial. They show on the home and About pages, newest first in the order below.</p>
+      </div>
+      <button class="btn" id="add-review">Add review</button>
+    </div>
+    <div id="review-list" class="stack"></div>
   </section>
 
   <section data-panel="business" hidden>
@@ -125,6 +146,27 @@
           <input id="p-moq" name="moq" placeholder="For example, 500 pieces">
         </div>
       </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="p-colours">Colours available <span class="opt">optional, separate with commas</span></label>
+          <input id="p-colours" placeholder="For example, White, Beige, Navy, Maroon">
+        </div>
+        <div class="field">
+          <label for="p-gsm">GSM <span class="opt">optional</span></label>
+          <input id="p-gsm" placeholder="For example, 450 GSM">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="p-pack">Packing <span class="opt">optional</span></label>
+        <input id="p-pack" placeholder="For example, 10 pieces per bundle, 100 pieces per carton">
+      </div>
+
+      <fieldset class="field">
+        <legend>Best for <span class="opt">optional</span></legend>
+        <div id="p-bestfor" class="tag-checks"></div>
+      </fieldset>
 
       <div class="field">
         <label for="p-brand">Brand <span class="opt">leave empty to use your registered brand</span></label>

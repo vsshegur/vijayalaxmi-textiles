@@ -103,6 +103,12 @@
         cta.querySelectorAll('[data-wa]').forEach((a) => { const u = new URL(a.href); u.searchParams.set('text', msg); a.href = u.toString(); });
         cta.querySelectorAll('[data-mail]').forEach((a) => { a.href = a.href.replace(/body=[^&]*/, 'body=' + encodeURIComponent(msg)); });
       }
+      // floating WhatsApp button mentions the towel and size being viewed
+      const float = document.querySelector('[data-wa-float]');
+      if (float) {
+        const text = `Hi ${product.dataset.firm}, I was looking at "${product.dataset.name}" in size ${s.label}${s.name ? ` (${s.name})` : ''} on your website: ${product.dataset.url}?size=${s.key}`;
+        float.href = `${float.dataset.waNumber}?text=${encodeURIComponent(text)}`;
+      }
       if (push) {
         const u = new URL(location.href); u.searchParams.set('size', s.key);
         history.replaceState(null, '', u);
@@ -113,7 +119,7 @@
       if (b) select(b.dataset.size, true);
     });
     const initial = new URLSearchParams(location.search).get('size');
-    if (initial) select(initial, false);
+    select(initial || (sizes[0] && sizes[0].key), false);
   }
 
   // gallery thumbnails
@@ -151,4 +157,47 @@
       }
     });
   }
+
+  // share and copy link on product pages
+  const done = document.querySelector('[data-share-done]');
+  const say = (msg) => { if (done) { done.textContent = msg; setTimeout(() => { done.textContent = ''; }, 2500); } };
+  const currentUrl = (base) => {
+    const size = new URLSearchParams(location.search).get('size');
+    return size ? `${base}?size=${encodeURIComponent(size)}` : base;
+  };
+  document.addEventListener('click', async (e) => {
+    const share = e.target.closest('[data-share]');
+    const copy = e.target.closest('[data-copy-link]');
+    if (share) {
+      const url = currentUrl(share.dataset.url);
+      const title = share.dataset.title;
+      if (navigator.share) {
+        try { await navigator.share({ title, text: `${title}: terry towel from Vijayalaxmi Textiles, Solapur`, url }); } catch (_) {}
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${title}: ${url}`)}`, '_blank', 'noopener');
+      }
+    }
+    if (copy) {
+      const url = currentUrl(copy.dataset.copyLink);
+      try { await navigator.clipboard.writeText(url); say('Link copied'); }
+      catch (_) { window.prompt('Copy this link', url); }
+    }
+  });
+
+  // PDF catalogue: load the generator only when someone asks for it
+  let catLoading = null;
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-catalogue]');
+    if (!btn) return;
+    const go = () => window.VLTCatalogue && window.VLTCatalogue.download(btn);
+    if (window.VLTCatalogue) return go();
+    if (!catLoading) {
+      catLoading = new Promise((res, rej) => {
+        const sc = document.createElement('script');
+        sc.src = document.body.dataset.catalogueJs; sc.onload = res; sc.onerror = rej;
+        document.head.appendChild(sc);
+      });
+    }
+    catLoading.then(go).catch(() => alert('The catalogue could not be loaded. Please check your internet and try again.'));
+  });
 })();

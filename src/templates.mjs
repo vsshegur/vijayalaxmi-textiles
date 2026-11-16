@@ -8,7 +8,7 @@ const sizeName = (s) => SIZE_NAMES.get(norm(s)) || '';
 const nameTag = (s) => (sizeName(s) ? ` <span class="size-name">${esc(sizeName(s))}</span>` : '');
 const nameParen = (s) => (sizeName(s) ? ` (${sizeName(s)})` : '');
 
-export function makeContext({ settings, categories, products, cssFile, jsFile }) {
+export function makeContext({ settings, categories, products, articles = [], cssFile, jsFile, catalogueFile = '' }) {
   SIZE_NAMES = new Map();
   for (const c of categories) for (const [k, v] of Object.entries(c.sizeNames || {})) if (v) SIZE_NAMES.set(norm(k), String(v));
   const siteUrl = String(settings.siteUrl || '').replace(/\/+$/, '');
@@ -32,8 +32,8 @@ export function makeContext({ settings, categories, products, cssFile, jsFile })
   };
 
   return {
-    settings, categories, products, siteUrl, year, established, yearsActive,
-    cssFile, jsFile, sizeToCat, productCats,
+    settings, categories, products, articles, siteUrl, year, established, yearsActive,
+    cssFile, jsFile, catalogueFile, sizeToCat, productCats,
     city: settings.city ? String(settings.city) : '',
     design: designOf(settings),
   };
@@ -86,6 +86,17 @@ function productVisual(p, { large = false, size = '' } = {}) {
     return `<img src="${esc(img)}" alt="${esc(p.name)}, ${esc(label)} inch terry towel" loading="${large ? 'eager' : 'lazy'}" decoding="async" width="800" height="1000">`;
   }
   return towelSwatch(p.colour, { label: p.name, cls: 'terry--fill' });
+}
+
+function reviewCards(ctx, { limit = 6 } = {}) {
+  const list = (ctx.settings.reviews || []).filter((r) => r && r.text).slice(0, limit);
+  if (!list.length) return '';
+  return `<ul class="reviews">${list.map((r, i) => `<li class="review">
+    ${r.rating !== '' && r.rating != null ? `<div class="review-stars" aria-label="${esc(Number(r.rating))} out of 5">${stars(r.rating, `r${i}`)}</div>` : ''}
+    <blockquote><p>${esc(r.text)}</p></blockquote>
+    <p class="review-by"><strong>${esc(r.name || 'Buyer')}</strong>${r.place ? `, ${esc(r.place)}` : ''}</p>
+    ${r.source ? `<p class="review-src">Review on ${esc(r.source)}${r.date ? `, ${esc(r.date)}` : ''}</p>` : ''}
+  </li>`).join('')}</ul>`;
 }
 
 function stars(rating, id) {
@@ -215,7 +226,7 @@ ${fontPreload(ctx.design)}
 <link rel="stylesheet" href="/assets/${ctx.cssFile}">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`).join('\n')}
 </head>
-<body class="theme-${ctx.design}">
+<body class="theme-${ctx.design}" data-catalogue-js="/assets/${ctx.catalogueFile}">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap header-inner">
@@ -236,6 +247,7 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).repl
 ${body}
 </main>
 ${footer(ctx)}
+${floatWa(ctx)}
 <script src="/assets/${ctx.jsFile}" defer></script>
 </body>
 </html>`;
@@ -259,6 +271,13 @@ export function logoMark() {
   </svg>`;
 }
 
+function floatWa(ctx) {
+  const s = ctx.settings;
+  const href = waLink(s, s.whatsappGreeting || `Hi ${s.firmName}, I was searching for towels on your website.`);
+  if (!href) return '';
+  return `<a class="wa-float" href="${esc(href)}" target="_blank" rel="noopener" data-wa-float data-wa-number="${esc(href.split('?')[0])}" aria-label="Chat with us on WhatsApp">${waIcon()}<span class="wa-float-label">Chat with us</span></a>`;
+}
+
 function footer(ctx) {
   const s = ctx.settings;
   const addr = [s.addressLine, [s.city, s.state].filter(Boolean).join(', '), s.pincode].filter(Boolean).join(', ');
@@ -279,11 +298,11 @@ function footer(ctx) {
     </div>
     <div>
       <h2 class="footer-h">Towels</h2>
-      <ul>${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}</ul>
+      <ul>${ctx.categories.map((c) => `<li><a href="/towels/${esc(c.slug)}/">${esc(c.name)}</a></li>`).join('')}<li>${catalogueButton('Download catalogue (PDF)', 'link-btn link-btn--footer')}</li></ul>
     </div>
     <div>
       <h2 class="footer-h">Guides</h2>
-      <ul>${GUIDES.map(([p, n]) => `<li><a href="${p}">${esc(n)}</a></li>`).join('')}</ul>
+      <ul>${GUIDES.map(([p, n]) => `<li><a href="${p}">${esc(n)}</a></li>`).join('')}${visibleArticles(ctx.articles).length ? '<li><a href="/blog/">Blog</a></li>' : ''}</ul>
     </div>
     <div>
       <h2 class="footer-h">Contact</h2>
@@ -502,7 +521,7 @@ export function homePage(ctx) {
   <div class="wrap">
     <div class="section-head section-head--row">
       <h2 id="feat-h" class="h2">From our looms</h2>
-      <a class="text-link" href="/towels/">View all towels</a>
+      <div class="head-actions"><a class="text-link" href="/towels/">View all towels</a>${catalogueButton('Download catalogue', 'link-btn')}</div>
     </div>
     <ul class="grid">${showcase.map((p) => productCard(ctx, p)).join('')}</ul>
   </div>
@@ -532,13 +551,14 @@ export function homePage(ctx) {
   </div>
 </section>`;
 
-  const trustSection = () => ratingCards(ctx) ? `<section class="section" aria-labelledby="trust-h">
+  const trustSection = () => ratingCards(ctx) || reviewCards(ctx) ? `<section class="section" aria-labelledby="trust-h">
   <div class="wrap">
     <div class="section-head">
       <h2 id="trust-h" class="h2">Rated by our buyers</h2>
-      <p>Independent ratings from the platforms where buyers find and review us.</p>
+      <p>Independent ratings and reviews from the platforms where buyers find us.</p>
     </div>
     ${ratingCards(ctx)}
+    ${reviewCards(ctx) ? `<h3 class="h3 reviews-h">What buyers say</h3>${reviewCards(ctx)}` : ''}
   </div>
 </section>` : '';
 
@@ -556,7 +576,7 @@ export function homePage(ctx) {
     <ul class="cat-links">${GUIDES.map(([p, n, d]) => `<li><a href="${p}"><span>${esc(n)}</span><span class="cat-links-sizes">${esc(d)}</span></a></li>`).join('')}</ul>
   </div>
 </section>`;
-  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + guidesSection() + '\n' + enquiryBand(ctx);
+  const body = (orders[variant] || orders.loom).map((f) => f()).join('\n') + '\n' + blogSection(ctx) + '\n' + guidesSection() + '\n' + enquiryBand(ctx);
 
   return layout(ctx, {
     title: '',
@@ -589,6 +609,7 @@ export function towelsPage(ctx) {
     ${crumbNav([['Home', '/'], ['Towels', '/towels/']])}
     <h1 class="display display--page">Our towels</h1>
     <p class="lede">Every towel we make, in every size. Filter by type or size, then open a towel to see its weight and details.</p>
+    <div class="btn-row">${catalogueButton()}</div>
   </div>
 </section>
 <section class="section section--tight">
@@ -722,7 +743,7 @@ export function productPage(ctx, p) {
   <div class="wrap">${crumbNav(crumbs)}</div>
 </section>
 <section class="section section--tight">
-  <div class="wrap product" data-product data-sizes='${esc(JSON.stringify(sizeData))}' data-name="${esc(p.name)}">
+  <div class="wrap product" data-product data-sizes='${esc(JSON.stringify(sizeData))}' data-name="${esc(p.name)}" data-url="${esc(abs(ctx, path))}" data-firm="${esc(s.firmName)}">
     ${gallery}
     <div class="product-info">
       <p class="product-kind">${groups.map((g) => esc(g.cat.singular || g.cat.name)).join(', ')}</p>
@@ -747,7 +768,11 @@ export function productPage(ctx, p) {
             ${p.brand || s.brandName ? `<div><dt>Brand</dt><dd>${esc(p.brand || brandR(ctx))}</dd></div>` : ''}
             ${p.pattern ? `<div><dt>Pattern</dt><dd>${esc(p.pattern)}</dd></div>` : ''}
             <div><dt>Country of origin</dt><dd>${esc(p.origin || 'India')}</dd></div>
+            ${p.gsm ? `<div><dt>GSM</dt><dd>${esc(p.gsm)}</dd></div>` : ''}
+            ${(p.colours || []).length ? `<div><dt>Colours</dt><dd><ul class="chips chips--plain">${p.colours.map((c) => `<li><span class="chip">${esc(c)}</span></li>`).join('')}</ul></dd></div>` : ''}
             ${p.moq ? `<div><dt>Minimum order</dt><dd>${esc(p.moq)}</dd></div>` : ''}
+            ${p.pack ? `<div><dt>Packing</dt><dd>${esc(p.pack)}</dd></div>` : ''}
+            ${(p.bestFor || []).length ? `<div><dt>Best for</dt><dd><ul class="chips chips--plain">${p.bestFor.map((c) => `<li><span class="chip chip--use">${esc(c)}</span></li>`).join('')}</ul></dd></div>` : ''}
             <div><dt>Available sizes (inches)</dt><dd>${esc(sizeList)}</dd></div>
           </dl>
         </div>
@@ -755,6 +780,14 @@ export function productPage(ctx, p) {
 
       <div class="product-cta" data-cta data-msg-base="${esc(msg(''))}">
         ${quoteButtons(ctx, msg(first ? sizeLabel(first.size) + nameParen(first.size) : ''))}
+        <div class="share-row">
+          <button type="button" class="share-btn" data-share data-url="${esc(abs(ctx, path))}" data-title="${esc(p.name)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 16.1c-.8 0-1.4.3-2 .8l-7.1-4.2c.1-.2.1-.5.1-.7s0-.5-.1-.7l7-4.1c.5.5 1.2.8 2 .8a3 3 0 1 0-3-3c0 .2 0 .5.1.7L8 9.8A3 3 0 1 0 8 14.2l7.1 4.2-.1.6a2.9 2.9 0 1 0 3-2.9z"/></svg>
+            Share this towel
+          </button>
+          <button type="button" class="share-btn" data-copy-link="${esc(abs(ctx, path))}">Copy link</button>
+          <span class="share-done" data-share-done role="status" aria-live="polite"></span>
+        </div>
         <p class="muted small">Prices depend on size, weight and quantity. Send your requirement and we will quote quickly.</p>
       </div>
     </div>
@@ -777,6 +810,9 @@ ${enquiryBand(ctx)}`;
   if (p.material) productLd.material = p.material;
   if (p.pattern) productLd.pattern = p.pattern;
   productLd.countryOfOrigin = { '@type': 'Country', name: p.origin || 'India' };
+  if ((p.colours || []).length) productLd.color = p.colours.join(', ');
+  const props = [['GSM', p.gsm], ['Packing', p.pack], ['Minimum order quantity', p.moq], ['Best for', (p.bestFor || []).join(', ')]].filter(([, v]) => v);
+  if (props.length) productLd.additionalProperty = props.map(([name, value]) => ({ '@type': 'PropertyValue', name, value }));
   if (sizeList) productLd.size = `${sizeList} in`;
 
   const title = primary?.singular && !p.name.toLowerCase().includes(primary.singular.toLowerCase()) ? `${p.name}, ${primary.singular.toLowerCase()}` : p.name;
@@ -824,7 +860,7 @@ export function aboutPage(ctx) {
     </aside>
   </div>
 </section>
-${ratingCards(ctx) ? `<section class="section"><div class="wrap"><div class="section-head"><h2 class="h2">Rated by our buyers</h2></div>${ratingCards(ctx)}</div></section>` : ''}
+${ratingCards(ctx) || reviewCards(ctx) ? `<section class="section"><div class="wrap"><div class="section-head"><h2 class="h2">Rated by our buyers</h2></div>${ratingCards(ctx)}${reviewCards(ctx) ? `<h3 class="h3 reviews-h">What buyers say</h3>${reviewCards(ctx, { limit: 12 })}` : ''}</div></section>` : ''}
 ${enquiryBand(ctx)}`;
   return layout(ctx, {
     title: 'About us: terry towel manufacturer since ' + ctx.established,
@@ -879,6 +915,7 @@ export function contactPage(ctx) {
         ${s.gstin ? `<div><dt>GSTIN</dt><dd>${esc(s.gstin)}</dd></div>` : ''}
       </dl>
       ${s.mapUrl && !isEmbed ? `<a class="text-link" href="${esc(s.mapUrl)}" target="_blank" rel="noopener">Open in Google Maps</a>` : ''}
+      <div class="contact-cat">${catalogueButton()}</div>
     </aside>
   </div>
   ${isEmbed ? `<div class="wrap"><iframe class="map" src="${esc(s.mapUrl)}" title="Map to ${esc(s.firmName)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>` : ''}
@@ -1178,4 +1215,180 @@ export function hotelPage(ctx) {
     body,
     faq,
   });
+}
+
+// =====================================================================
+// Blog
+// =====================================================================
+
+// Small, safe text formatter for articles written in the admin panel:
+// blank line = new paragraph, "## " heading, "### " subheading, "- " bullet, "1. " numbered,
+// **bold**, [link text](https://...) links.
+export function formatArticle(text) {
+  const inline = (s) => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^)\s]+)\)/g, (m, label, url) => `<a href="${url}"${url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${label}</a>`);
+  const blocks = String(text || '').replace(/\r/g, '').split(/\n\s*\n/);
+  return blocks.map((b) => {
+    const lines = b.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return '';
+    if (lines.length === 1 && lines[0].startsWith('### ')) return `<h3>${inline(lines[0].slice(4))}</h3>`;
+    if (lines.length === 1 && lines[0].startsWith('## ')) return `<h2>${inline(lines[0].slice(3))}</h2>`;
+    if (lines.every((l) => /^[-*] /.test(l))) return `<ul class="tick-list">${lines.map((l) => `<li>${inline(l.slice(2))}</li>`).join('')}</ul>`;
+    if (lines.every((l) => /^\d+[.)] /.test(l))) return `<ol class="steps">${lines.map((l) => `<li>${inline(l.replace(/^\d+[.)] /, ''))}</li>`).join('')}</ol>`;
+    return `<p>${lines.map(inline).join('<br>')}</p>`;
+  }).join('\n');
+}
+
+const fmtDate = (d) => {
+  const t = new Date(`${d}T00:00:00Z`);
+  return isNaN(t) ? '' : t.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+};
+
+export function visibleArticles(articles) {
+  return (articles || []).filter((a) => a && a.title && a.slug && !a.hidden).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+function articleCard(a) {
+  return `<li class="post-card">
+    <a href="/blog/${esc(a.slug)}/">
+      ${a.cover ? `<div class="post-cover"><img src="${esc(a.cover)}" alt="" loading="lazy" width="800" height="450"></div>` : ''}
+      <p class="post-date">${esc(fmtDate(a.date))}</p>
+      <h3 class="post-title">${esc(a.title)}</h3>
+      ${a.summary ? `<p class="post-summary">${esc(a.summary)}</p>` : ''}
+    </a>
+  </li>`;
+}
+
+export function blogSection(ctx) {
+  const list = visibleArticles(ctx.articles).slice(0, 3);
+  if (!list.length) return '';
+  return `<section class="section" aria-labelledby="blog-h">
+  <div class="wrap">
+    <div class="section-head section-head--row"><h2 id="blog-h" class="h2">From our blog</h2><a class="text-link" href="/blog/">All articles</a></div>
+    <ul class="posts">${list.map(articleCard).join('')}</ul>
+  </div>
+</section>`;
+}
+
+export function blogIndexPage(ctx) {
+  const list = visibleArticles(ctx.articles);
+  const crumbs = [['Home', '/'], ['Blog', '/blog/']];
+  const body = `
+<section class="page-head">
+  <div class="wrap">
+    ${crumbNav(crumbs)}
+    <h1 class="display display--page">Towel tips and news</h1>
+    <p class="lede">Articles from ${esc(ctx.settings.firmName)}, terry towel manufacturers in ${esc(ctx.city || 'India')} since ${ctx.established}.</p>
+  </div>
+</section>
+<section class="section section--tight">
+  <div class="wrap"><ul class="posts">${list.map(articleCard).join('')}</ul></div>
+</section>
+${enquiryBand(ctx)}`;
+  return layout(ctx, {
+    title: 'Blog: towel buying tips and news',
+    description: `Towel buying tips, size and weight advice, and news from ${ctx.settings.firmName}, a terry towel manufacturer in ${ctx.city || 'India'}.`,
+    path: '/blog/',
+    active: 'blog',
+    body,
+    jsonld: [breadcrumbs(ctx, crumbs)],
+  });
+}
+
+export function articlePage(ctx, a) {
+  const s = ctx.settings;
+  const path = `/blog/${a.slug}/`;
+  const crumbs = [['Home', '/'], ['Blog', '/blog/'], [a.title, path]];
+  const more = visibleArticles(ctx.articles).filter((x) => x.slug !== a.slug).slice(0, 3);
+  const body = `
+<section class="page-head">
+  <div class="wrap">
+    ${crumbNav(crumbs)}
+    <h1 class="display display--page">${esc(a.title)}</h1>
+    <p class="post-meta">${esc(fmtDate(a.date))}, by ${esc(s.firmName)}</p>
+  </div>
+</section>
+<article class="section section--tight">
+  <div class="wrap narrow prose prose--guide">
+    ${a.cover ? `<img class="post-hero" src="${esc(a.cover)}" alt="${esc(a.title)}" width="1200" height="675">` : ''}
+    ${a.summary ? `<p class="post-lede">${esc(a.summary)}</p>` : ''}
+    ${formatArticle(a.body)}
+  </div>
+</article>
+${more.length ? `<section class="section section--tight"><div class="wrap"><h2 class="h3">More articles</h2><ul class="posts">${more.map(articleCard).join('')}</ul></div></section>` : ''}
+${enquiryBand(ctx)}`;
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: a.title,
+    description: a.summary || undefined,
+    datePublished: a.date || undefined,
+    dateModified: a.updated || a.date || undefined,
+    image: a.cover ? abs(ctx, a.cover) : undefined,
+    author: { '@type': 'Organization', name: s.firmName, url: `${ctx.siteUrl}/` },
+    publisher: { '@id': `${ctx.siteUrl}/#business` },
+    mainEntityOfPage: abs(ctx, path),
+  };
+  return layout(ctx, {
+    title: a.title,
+    description: (a.summary || strip(formatArticle(a.body))).slice(0, 158),
+    path,
+    active: 'blog',
+    image: a.cover,
+    body,
+    jsonld: [ld, breadcrumbs(ctx, crumbs)],
+  });
+}
+
+// Data for the downloadable PDF catalogue (built in the visitor's browser)
+export function catalogueData(ctx) {
+  const s = ctx.settings;
+  const brand = s.brandName ? `${s.brandName}®` : '';
+  const im = (s.ratings || []).find((r) => /indiamart/i.test(r.platform) && r.rating !== '' && r.rating != null);
+  const sizeInfo = (sz, weight = '') => ({ label: sizeLabel(sz), cm: sizeCm(sz), name: sizeName(sz), weight });
+  const groups = [];
+  const placed = new Set();
+  for (const c of ctx.categories) {
+    const items = ctx.products.filter((p) => !placed.has(p.slug) && ctx.productCats(p)[0]?.cat.slug === c.slug);
+    items.forEach((p) => placed.add(p.slug));
+    groups.push({ name: c.name, sizes: (c.sizes || []).map((sz) => sizeShort(sz) + nameParen(sz)), products: items });
+  }
+  const rest = ctx.products.filter((p) => !placed.has(p.slug));
+  if (rest.length) groups.push({ name: 'Other towels', sizes: [], products: rest });
+  const prod = (p) => {
+    const first = (p.sizes || [])[0]?.size;
+    return {
+      name: p.name,
+      slug: p.slug,
+      kinds: ctx.productCats(p).map((g) => g.cat.singular || g.cat.name).join(', '),
+      sizes: (p.sizes || []).map((x) => sizeInfo(x.size, x.weight)),
+      material: p.material, pattern: p.pattern, gsm: p.gsm, colours: p.colours || [], moq: p.moq, pack: p.pack,
+      bestFor: p.bestFor || [], origin: p.origin || 'India', brand: p.brand || brand,
+      colour: p.colour, photo: photosFor(p, first)[0]?.src || '',
+    };
+  };
+  return {
+    firm: s.firmName,
+    brand,
+    tagline: `Terry towel manufacturer and wholesaler${ctx.city ? `, ${ctx.city}` : ''}. Since ${ctx.established}.`,
+    logo: s.brandLogo || '',
+    site: ctx.siteUrl,
+    phone: s.whatsapp || s.phone || '',
+    wa: waLink(s, s.whatsappGreeting || `Hi ${s.firmName}, I saw your catalogue.`),
+    email: s.email || '',
+    address: [s.addressLine, [s.city, s.state].filter(Boolean).join(', '), s.pincode].filter(Boolean).join(', '),
+    gstin: s.gstin || '',
+    languages: s.languages || '',
+    rating: im ? `Rated ${Number(im.rating).toFixed(1)} out of 5 on IndiaMART${im.reviews ? ` by ${im.reviews} ${im.note || 'buyers'}` : ''}` : '',
+    categories: ctx.categories.map((c) => ({ name: c.name, sizes: (c.sizes || []).map((sz) => sizeInfo(sz)) })),
+    groups: groups.map((g) => ({ name: g.name, sizes: g.sizes, products: g.products.map(prod) })),
+    fileName: `${(s.brandName || s.firmName).replace(/['’]/g, '').replace(/[^A-Za-z0-9]+/g, '-')}-${s.firmName.replace(/['’]/g, '').replace(/[^A-Za-z0-9]+/g, '-')}-Catalogue.pdf`.replace(/-+/g, '-'),
+  };
+}
+
+export function catalogueButton(label = 'Download catalogue (PDF)', cls = 'btn btn--ghost') {
+  return `<button type="button" class="${cls}" data-catalogue>
+    <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4l3.3 3.3V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"/></svg>${label}
+  </button>`;
 }

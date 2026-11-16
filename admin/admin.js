@@ -9,7 +9,7 @@
   const OTHER = '__other__';
   const DRAFT_KEY = 'vlt-admin-draft-v1';
 
-  const state = { settings: {}, categories: [], products: [], connected: false, dirty: false };
+  const state = { settings: {}, categories: [], products: [], articles: [], connected: false, dirty: false };
   const uploads = new Map(); // path -> { data (base64), url (object URL) }
   const previews = new Map(); // path -> object URL for photos published this session
 
@@ -33,7 +33,8 @@
     try {
       const pending = new Set(uploads.keys());
       const products = state.products.map((p) => ({ ...p, images: p.images.filter((i) => !pending.has(i.src)) }));
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), settings: state.settings, categories: state.categories, products }));
+      const articles = state.articles.map((a) => ({ ...a, cover: pending.has(a.cover) ? '' : a.cover }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), settings: state.settings, categories: state.categories, products, articles }));
     } catch (_) {}
   }
   function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (_) {} }
@@ -64,6 +65,7 @@
     state.settings = data.settings || {};
     state.categories = data.categories || [];
     state.products = (data.products || []).map(fixProduct);
+    state.articles = (data.articles || []).map((a) => ({ ...a, slugLocked: !!a.slug }));
 
     if (!state.connected) {
       showNotice(`<strong>Publishing is not connected yet.</strong> You can look around, but changes cannot be published until <code>GITHUB_TOKEN</code> and <code>GITHUB_REPO</code> are added in Cloudflare Pages settings. ${data.error ? esc(data.error) : ''}`);
@@ -72,6 +74,7 @@
     const draft = readDraft();
     if (draft && draft.products && confirm('You have unpublished changes saved on this device from before. Restore them?')) {
       state.settings = draft.settings; state.categories = draft.categories; state.products = draft.products.map(fixProduct);
+      if (draft.articles) state.articles = draft.articles;
       renderAll(); setDirty(true);
     } else {
       clearDraft(); renderAll(); setDirty(false);
@@ -91,7 +94,7 @@
     return m;
   };
 
-  function renderAll() { renderProducts(); renderTypes(); renderRatings(); renderBusiness(); renderDesign(); }
+  function renderAll() { renderArticles(); renderProducts(); renderTypes(); renderRatings(); renderReviews(); renderBusiness(); renderDesign(); }
 
   // ---------- products list ----------
   $('#product-search').addEventListener('input', renderProducts);
@@ -148,6 +151,11 @@
     $('#p-name').value = editing.name;
     $('#p-moq').value = editing.moq;
     $('#p-brand').value = editing.brand || '';
+    $('#p-colours').value = (editing.colours || []).join(', ');
+    $('#p-gsm').value = editing.gsm || '';
+    $('#p-pack').value = editing.pack || '';
+    const tags = [...new Set([...(state.settings.useTags || []), ...(editing.bestFor || [])])];
+    $('#p-bestfor').innerHTML = tags.map((tg, i) => `<label><input type="checkbox" value="${esc(tg)}"${(editing.bestFor || []).includes(tg) ? ' checked' : ''}> ${esc(tg)}</label>`).join('') || '<span class="hint">Add choices under Business details.</span>';
     $('#p-brand').placeholder = state.settings.brandName ? `${state.settings.brandName} (default)` : 'Brand';
     $('#p-desc').value = editing.description;
     $('#p-colour').value = /^#[0-9a-f]{6}$/i.test(editing.colour) ? editing.colour : '#34489c';
@@ -345,6 +353,10 @@
       pattern: selectValue($('#p-pattern'), $('#p-pattern-other')),
       moq: $('#p-moq').value.trim(),
       brand: $('#p-brand').value.trim(),
+      colours: $('#p-colours').value.split(',').map((x) => x.trim()).filter(Boolean),
+      gsm: $('#p-gsm').value.trim(),
+      pack: $('#p-pack').value.trim(),
+      bestFor: $$('#p-bestfor input:checked').map((x) => x.value),
       description: $('#p-desc').value.trim(),
       colour: $('#p-colour').value,
       featured: $('#p-featured').checked,
@@ -454,6 +466,112 @@
     renderRatings(); setDirty(true);
   });
 
+  // ---------- articles ----------
+  const today = () => new Date().toISOString().slice(0, 10);
+  function renderArticles() {
+    const list = state.articles;
+    $('#article-list').innerHTML = list.length ? list.map((a, i) => `<details class="card article" data-article="${i}"${a._open ? ' open' : ''}>
+      <summary><span class="pname">${esc(a.title || 'Untitled article')}</span> <span class="pmeta">${esc(a.date || '')}${a.hidden ? ' <span class="tag tag--warn">Hidden</span>' : ''}</span></summary>
+      <div class="form-grid">
+        <div class="field wide"><label>Title</label><input data-k="title" value="${esc(a.title)}" placeholder="For example, How to choose towels for your hotel"></div>
+        <div class="field"><label>Date</label><input data-k="date" type="date" value="${esc(a.date)}"></div>
+        <div class="field checks"><label><input type="checkbox" data-k="hidden"${a.hidden ? ' checked' : ''}> Hide from site</label></div>
+        <div class="field wide"><label>Summary <span class="opt">one or two sentences, shown in lists and on Google</span></label><textarea data-k="summary" rows="2">${esc(a.summary)}</textarea></div>
+        <div class="field wide"><label>Article</label><textarea data-k="body" rows="14" placeholder="Write the article here.">${esc(a.body)}</textarea></div>
+        <div class="field wide">
+          <label>Cover photo <span class="opt">optional</span></label>
+          <div class="inline">
+            ${a.cover ? `<img class="cover-thumb" src="${esc(imgUrl(a.cover))}" alt="">` : ''}
+            <label class="btn btn--small file-btn">${a.cover ? 'Change photo' : 'Add photo'}<input type="file" accept="image/*" data-cover="${i}" hidden></label>
+            ${a.cover ? `<button type="button" class="btn btn--danger-text btn--small" data-cover-remove="${i}">Remove photo</button>` : ''}
+          </div>
+        </div>
+        <div class="wide row-actions"><button type="button" class="btn btn--danger-text" data-del-article="${i}">Delete article</button></div>
+      </div>
+    </details>`).join('') : '<p class="empty">No articles yet. Add one about something buyers often ask you.</p>';
+  }
+  $('#article-list').addEventListener('toggle', (e) => {
+    const d = e.target.closest('[data-article]'); if (d) state.articles[+d.dataset.article]._open = d.open;
+  }, true);
+  $('#article-list').addEventListener('change', async (e) => {
+    const card = e.target.closest('[data-article]'); if (!card) return;
+    const a = state.articles[+card.dataset.article];
+    if (e.target.dataset.cover !== undefined) {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const { blob, ext } = await resize(f, 1600);
+        const path = `/images/articles/${(slugify(a.title) || 'article').slice(0, 60)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        uploads.set(path, { data: await toBase64(blob), url: URL.createObjectURL(blob) });
+        a.cover = path; a._open = true; renderArticles(); setDirty(true);
+      } catch (_) { alert('Could not add that photo. Use a JPG, PNG or WebP photo.'); }
+      return;
+    }
+    const k = e.target.dataset.k; if (!k) return;
+    a[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    if (k === 'title') {
+      if (!a.slugLocked) {
+        let slug = slugify(a.title) || 'article';
+        const taken = new Set(state.articles.filter((x) => x !== a).map((x) => x.slug));
+        let n = 2; const b = slug; while (taken.has(slug)) slug = `${b}-${n++}`;
+        a.slug = slug;
+      }
+      card.querySelector('summary .pname').textContent = a.title || 'Untitled article';
+    }
+    a.updated = today();
+    setDirty(true);
+  });
+  $('#article-list').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del-article]');
+    const rm = e.target.closest('[data-cover-remove]');
+    if (del) {
+      const a = state.articles[+del.dataset.delArticle];
+      if (!confirm(`Delete the article “${a.title || 'Untitled'}”? It will be removed from the site when you publish.`)) return;
+      state.articles.splice(+del.dataset.delArticle, 1); renderArticles(); setDirty(true);
+    }
+    if (rm) { state.articles[+rm.dataset.coverRemove].cover = ''; renderArticles(); setDirty(true); }
+  });
+  $('#add-article').addEventListener('click', () => {
+    state.articles.unshift({ id: `a${Date.now()}`, slug: '', title: '', date: today(), summary: '', body: '', cover: '', hidden: false, _open: true });
+    renderArticles(); setDirty(true);
+    $('#article-list [data-k="title"]')?.focus();
+  });
+
+  // ---------- reviews ----------
+  function renderReviews() {
+    const list = state.settings.reviews || (state.settings.reviews = []);
+    $('#review-list').innerHTML = list.length ? list.map((r, i) => `<div class="card form-grid" data-review="${i}">
+      <div class="field"><label>Buyer name</label><input data-k="name" value="${esc(r.name)}" placeholder="For example, Rajesh Patil"></div>
+      <div class="field"><label>Company or city <span class="opt">optional</span></label><input data-k="place" value="${esc(r.place)}" placeholder="For example, Hotel Sai, Pune"></div>
+      <div class="field wide"><label>Review</label><textarea data-k="text" rows="3" placeholder="What the buyer wrote">${esc(r.text)}</textarea></div>
+      <div class="field"><label>Stars out of 5 <span class="opt">optional</span></label><input data-k="rating" type="number" min="1" max="5" step="0.5" value="${esc(r.rating)}"></div>
+      <div class="field"><label>Where it was posted</label><select data-k="source">${['', 'IndiaMART', 'Google', 'Justdial', 'WhatsApp', 'Other'].map((o) => `<option value="${o}"${(r.source || '') === o ? ' selected' : ''}>${o || 'Choose'}</option>`).join('')}</select></div>
+      <div class="field"><label>Month and year <span class="opt">optional</span></label><input data-k="date" value="${esc(r.date)}" placeholder="For example, Oct 2026"></div>
+      <div class="wide row-actions">
+        <button type="button" class="btn btn--small" data-review-up="${i}"${i === 0 ? ' disabled' : ''}>Move up</button>
+        <button type="button" class="btn btn--danger-text" data-del-review="${i}">Remove</button>
+      </div>
+    </div>`).join('') : '<p class="empty">No reviews yet. Add your best IndiaMART or Google reviews.</p>';
+  }
+  $('#review-list').addEventListener('change', (e) => {
+    const card = e.target.closest('[data-review]'); const k = e.target.dataset.k;
+    if (!card || !k) return;
+    const r = state.settings.reviews[+card.dataset.review];
+    r[k] = k === 'rating' ? (e.target.value === '' ? '' : Math.max(1, Math.min(5, Number(e.target.value)))) : e.target.value.trim();
+    setDirty(true);
+  });
+  $('#review-list').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del-review]');
+    const up = e.target.closest('[data-review-up]');
+    const list = state.settings.reviews;
+    if (del) { list.splice(+del.dataset.delReview, 1); renderReviews(); setDirty(true); }
+    if (up) { const i = +up.dataset.reviewUp; [list[i - 1], list[i]] = [list[i], list[i - 1]]; renderReviews(); setDirty(true); }
+  });
+  $('#add-review').addEventListener('click', () => {
+    (state.settings.reviews ||= []).unshift({ name: '', place: '', text: '', rating: 5, source: 'IndiaMART', date: '' });
+    renderReviews(); setDirty(true);
+    $('#review-list input')?.focus();
+  });
+
   // ---------- business details ----------
   const FIELDS = [
     ['h', 'Firm'],
@@ -473,7 +591,7 @@
     ['seoDescription', 'Description shown in Google results (about 150–160 characters)', 'textarea', 'wide'],
     ['about', 'Our story (About page). Leave a blank line between paragraphs.', 'textarea-lg', 'wide'],
     ['h', 'Choices in the product form (one per line)'],
-    ['materials', 'Materials', 'list'], ['patterns', 'Pattern types', 'list'], ['origins', 'Countries of origin', 'list'],
+    ['materials', 'Materials', 'list'], ['patterns', 'Pattern types', 'list'], ['origins', 'Countries of origin', 'list'], ['useTags', '“Best for” choices', 'list'],
   ];
   function renderBusiness() {
     const s = state.settings;
@@ -529,13 +647,13 @@
     publishBtn.disabled = true;
     statusEl.className = 'status';
     statusEl.textContent = 'Publishing…';
-    const referenced = new Set(state.products.flatMap((p) => p.images.map((x) => x.src)));
+    const referenced = new Set([...state.products.flatMap((p) => p.images.map((x) => x.src)), ...state.articles.map((a) => a.cover).filter(Boolean)]);
     const up = [...uploads].filter(([p]) => referenced.has(p)).map(([path, u]) => ({ path, data: u.data }));
     try {
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin': '1' },
-        body: JSON.stringify({ settings: state.settings, categories: state.categories, products: state.products, uploads: up }),
+        body: JSON.stringify({ settings: state.settings, categories: state.categories, products: state.products, articles: state.articles, uploads: up }),
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(out.error || `Publishing failed (error ${res.status}).`);

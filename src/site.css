@@ -710,3 +710,68 @@ body.theme-spa { background: #fbfcfa; line-height: 1.7; }
 .btn--wa { white-space: nowrap; }
 
 .gallery-thumbs li[hidden], .gallery-thumbs[hidden], .gallery-note[hidden] { display: none; }
+
+.chips--plain { gap: 0.3rem; }
+.chips--plain .chip { font-weight: 500; padding: 0.35rem 0.6rem; }
+.chip--use { background: #fdf1d8; border-color: transparent; color: #7a4f00; }
+
+/* floating WhatsApp button */
+.wa-float {
+  position: fixed; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 20;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: #25d366; color: #0b3b1e; text-decoration: none; font-weight: 700;
+  padding: 0.8rem 1.15rem 0.8rem 0.95rem; border-radius: 999px;
+  box-shadow: 0 10px 24px -8px rgba(11,59,30,.55), 0 2px 6px rgba(0,0,0,.12);
+}
+.wa-float:hover { background: #1ebe5a; color: #0b3b1e; }
+.wa-float .btn-icon { width: 1.6rem; height: 1.6rem; }
+@media (max-width: 600px) {
+  .wa-float { padding: 0.85rem; }
+  .wa-float-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .wa-float .btn-icon { width: 1.9rem; height: 1.9rem; }
+}
+@media print { .wa-float { display: none; } }
+.site-footer { padding-bottom: 4.5rem; }
+
+/* share */
+.share-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.75rem; }
+.share-btn { display: inline-flex; align-items: center; gap: 0.4rem; font: 600 var(--step--1)/1 var(--sans); color: var(--indigo); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 0.55rem 0.9rem; cursor: pointer; }
+.share-btn:hover { border-color: var(--indigo); }
+.share-btn svg { width: 1rem; height: 1rem; }
+.share-done { font-size: var(--step--1); color: var(--teal); font-weight: 600; }
+
+/* reviews */
+.reviews-h { margin: 2.5rem 0 1rem; }
+.reviews { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 1.25rem; }
+.review { background: var(--cotton); border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.review .stars { width: 6rem; height: 1.2rem; }
+.review blockquote { margin: 0; }
+.review blockquote p { margin: 0; font-size: 1.05rem; line-height: 1.6; }
+.review blockquote p::before { content: '“'; }
+.review blockquote p::after { content: '”'; }
+.review-by { margin: auto 0 0; padding-top: 0.5rem; }
+.review-src { margin: 0; font-size: var(--step--1); color: var(--thread); }
+.theme-spa .review { background: #fff; box-shadow: 0 0 0 1px var(--line); }
+
+/* blog */
+.posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 2rem 1.5rem; }
+.post-card a { display: flex; flex-direction: column; gap: 0.4rem; text-decoration: none; color: var(--indigo); }
+.post-cover { aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: var(--cotton); margin-bottom: 0.4rem; }
+.post-cover img { width: 100%; height: 100%; object-fit: cover; }
+.post-date, .post-meta { font-size: var(--step--1); color: var(--thread); margin: 0; }
+.post-meta { margin-top: 0.75rem; }
+.post-title { font-size: var(--step-1); font-weight: 700; line-height: 1.3; }
+.post-card a:hover .post-title { text-decoration: underline; text-decoration-color: var(--turmeric); text-decoration-thickness: 2px; }
+.post-summary { color: var(--thread); margin: 0; }
+.post-hero { width: 100%; height: auto; border-radius: var(--radius); margin-bottom: 1.5rem; }
+.post-lede { font-size: var(--step-1); line-height: 1.55; color: var(--indigo); }
+.prose--guide h3 { font-size: var(--step-1); font-weight: 700; margin: 1.75rem 0 0.5rem; }
+
+/* catalogue buttons */
+.head-actions { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.link-btn { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: 0; padding: 0; font: 600 var(--step-0)/1.4 var(--sans); color: var(--loom); cursor: pointer; text-decoration: underline; text-decoration-color: var(--turmeric); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+.link-btn .btn-icon { width: 1.05em; height: 1.05em; }
+.link-btn--footer { font-size: inherit; font-weight: 400; color: rgba(255,255,255,.88); text-decoration-color: rgba(255,255,255,.5); text-decoration-thickness: 1px; }
+.link-btn--footer:hover { color: var(--turmeric); }
+.contact-cat { margin-top: 1.25rem; }
+button[data-catalogue]:disabled { opacity: .6; cursor: progress; }

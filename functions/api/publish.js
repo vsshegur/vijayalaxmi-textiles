@@ -1,7 +1,7 @@
 import { repoConfig, gh, json } from '../../lib/github.js';
 
-const IMG_DIR = 'static/images/products/';
-const IMG_RE = /^\/images\/products\/[a-z0-9][a-z0-9-]{0,80}\.(webp|jpg|jpeg|png)$/;
+const IMG_DIRS = ['static/images/products/', 'static/images/articles/'];
+const IMG_RE = /^\/images\/(products|articles)\/[a-z0-9][a-z0-9-]{0,80}\.(webp|jpg|jpeg|png)$/;
 const MAX_IMG_BYTES = 6 * 1024 * 1024;
 
 const str = (v, max = 2000) => String(v ?? '').slice(0, max).trim();
@@ -35,6 +35,10 @@ function cleanProducts(list) {
       description: str(p.description, 2000),
       moq: str(p.moq, 120),
       brand: str(p.brand, 60),
+      colours: (Array.isArray(p.colours) ? p.colours : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 30),
+      gsm: str(p.gsm, 40),
+      pack: str(p.pack, 160),
+      bestFor: (Array.isArray(p.bestFor) ? p.bestFor : []).map((x) => str(x, 40)).filter(Boolean).slice(0, 12),
       featured: !!p.featured,
       hidden: !!p.hidden,
       colour: /^#[0-9a-f]{6}$/i.test(p.colour || '') ? p.colour : '#34489c',
@@ -42,6 +46,29 @@ function cleanProducts(list) {
       sizes,
     };
   });
+}
+
+function cleanArticles(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  return list.slice(0, 500).map((a, i) => {
+    const title = str(a.title, 160);
+    let slug = slugify(a.slug || title) || `article-${i + 1}`;
+    while (seen.has(slug)) slug = `${slug}-${i + 1}`;
+    seen.add(slug);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(a.date || '') ? a.date : new Date().toISOString().slice(0, 10);
+    return {
+      id: str(a.id, 40) || `a${Date.now()}${i}`,
+      slug,
+      title,
+      date,
+      updated: /^\d{4}-\d{2}-\d{2}$/.test(a.updated || '') ? a.updated : date,
+      summary: str(a.summary, 400),
+      body: str(a.body, 40000),
+      cover: IMG_RE.test(a.cover || '') ? a.cover : '',
+      hidden: !!a.hidden,
+    };
+  }).filter((a) => a.title);
 }
 
 function cleanCategories(list) {
@@ -81,6 +108,15 @@ function cleanSettings(s) {
         note: str(r.note, 40),
         url: /^https?:\/\//.test(r.url || '') ? str(r.url, 600) : '',
       })).filter((r) => r.platform);
+    } else if (k === 'reviews') {
+      out.reviews = (Array.isArray(v) ? v : []).slice(0, 50).map((r) => ({
+        name: str(r.name, 80),
+        place: str(r.place, 80),
+        text: str(r.text, 1200),
+        rating: r.rating === '' || r.rating == null ? '' : Math.max(1, Math.min(5, Number(r.rating) || 5)),
+        source: str(r.source, 30),
+        date: str(r.date, 30),
+      })).filter((r) => r.text);
     } else if (Array.isArray(v)) {
       out[k] = v.map((x) => str(x, 80)).filter(Boolean).slice(0, 40);
     } else if (typeof v === 'number') {
@@ -102,16 +138,17 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch (_) { return json({ error: 'The request was not valid.' }, 400); }
 
-  let settings, categories, products;
+  let settings, categories, products, articles;
   try {
     settings = cleanSettings(body.settings);
     categories = cleanCategories(body.categories);
     products = cleanProducts(body.products);
+    articles = cleanArticles(body.articles);
   } catch (e) {
     return json({ error: e.message }, 400);
   }
 
-  const referenced = new Set(products.flatMap((p) => p.images.map((x) => x.src)));
+  const referenced = new Set([...products.flatMap((p) => p.images.map((x) => x.src)), ...articles.map((a) => a.cover).filter(Boolean)]);
   const uploads = (Array.isArray(body.uploads) ? body.uploads : []).filter((u) => IMG_RE.test(u.path || '') && referenced.has(u.path));
   for (const u of uploads) {
     if (typeof u.data !== 'string' || u.data.length * 0.75 > MAX_IMG_BYTES) return json({ error: `Photo ${u.path} is too large. Use photos under 6 MB.` }, 400);
@@ -122,13 +159,14 @@ export async function onRequestPost({ request, env }) {
     const headSha = ref.object.sha;
     const head = await gh(cfg, `/git/commits/${headSha}`);
     const tree = await gh(cfg, `/git/trees/${head.tree.sha}?recursive=1`);
-    const existing = new Set(tree.tree.filter((t) => t.type === 'blob' && t.path.startsWith(IMG_DIR)).map((t) => t.path));
+    const existing = new Set(tree.tree.filter((t) => t.type === 'blob' && IMG_DIRS.some((d) => t.path.startsWith(d))).map((t) => t.path));
 
     const entries = [];
     const fileJson = (path, data) => entries.push({ path, mode: '100644', type: 'blob', content: JSON.stringify(data, null, 2) + '\n' });
     fileJson('data/settings.json', settings);
     fileJson('data/categories.json', categories);
     fileJson('data/products.json', products);
+    fileJson('data/articles.json', articles);
 
     for (const u of uploads) {
       const blob = await gh(cfg, '/git/blobs', { method: 'POST', body: JSON.stringify({ content: u.data, encoding: 'base64' }) });

@@ -6,12 +6,13 @@ export async function onRequestGet({ env, request }) {
   const cfg = repoConfig(env);
   if (cfg) {
     try {
-      const [settings, categories, products] = await Promise.all([
+      const [settings, categories, products, articles] = await Promise.all([
         readJsonFile(cfg, 'data/settings.json'),
         readJsonFile(cfg, 'data/categories.json'),
         readJsonFile(cfg, 'data/products.json'),
+        readJsonFile(cfg, 'data/articles.json').catch(() => []),
       ]);
-      return json({ connected: true, settings, categories, products });
+      return json({ connected: true, settings, categories, products, articles });
     } catch (e) {
       return json({ connected: false, error: `Could not read from GitHub. Check GITHUB_TOKEN and GITHUB_REPO. ${e.message}` }, 502);
     }
